@@ -1,6 +1,6 @@
 const sqlite3 = require("sqlite3").verbose();
 
-const db = new sqlite3.Database("games.db");
+const db = new sqlite3.Database("./games.db");
 
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS users (chat_id TEXT PRIMARY KEY)`);
