@@ -1,39 +1,30 @@
 const axios = require("axios");
 const puppeteer = require("puppeteer-extra");
 const StealthPlugin = require("puppeteer-extra-plugin-stealth");
-const { db } = require("../db/db");
+const {
+  saveNotifiedGame,
+  cleanupExpiredGames,
+  getAllGames,
+} = require("../db/db");
+const { Game } = require("../models/Game");
 
 puppeteer.use(StealthPlugin());
 
-class Game {
-  constructor(id, title, url, offer) {
-    this.id = id;
-    this.title = title;
-    this.url = url;
-    const { startDate, endDate } = offer;
-    this.offer = new GameOffer(startDate, endDate);
-  }
-
-  id = 0;
-  title = "";
-  url = "";
-}
-
-class GameOffer {
-  constructor(startDate, endDate) {
-    this.startDate = startDate;
-    this.endDate = endDate;
-  }
-
-  startDate = null;
-  endDate = null;
-}
-
 async function checkGames(next, force) {
+  if(!next && force) {
+    return new Promise((resolve, reject) => {
+      getAllGames((err, games) => {
+        if(err) return reject(err);
+        return resolve(games);
+      }) 
+
+    })
+  }
+
   cleanupExpiredGames();
-
+  
   const requests = [fetchEpicGames(next), fetchSteamGames(next)];
-
+  
   const responses = await Promise.all(requests);
   const games = [...responses[0], ...responses[1]];
   if (!force) {
@@ -45,14 +36,6 @@ async function checkGames(next, force) {
   });
 
   return games;
-}
-
-function saveNotifiedGame(game) {
-  db.run(
-    `INSERT OR REPLACE INTO notified_games (game_id, title, url, start_date, end_date)
-    VALUES (?, ?, ?, ?, ?)`,
-    [game.id, game.title, game.url, game.offer.startDate, game.offer.endDate]
-  );
 }
 
 async function fetchEpicGames(next) {
@@ -164,24 +147,6 @@ function filterNextGames(data) {
       game.promotions.upcomingPromotionalOffers[0].promotionalOffers[0]
         .discountSetting.discountPercentage == 0
   );
-}
-
-function cleanupExpiredGames() {
-  const now = new Date().toISOString();
-  db.all(`SELECT game_id, end_date FROM notified_games`, [], (err, rows) => {
-    if (err) return console.error(err);
-    console.log("Cleaning up games");
-
-    rows.forEach(({ game_id, end_date }) => {
-      if (end_date < now) {
-        console.log("Cleaning up game: " + game_id);
-        db.run(`DELETE FROM notified_games WHERE game_id = ?`, [game_id]);
-        db.run(`DELETE FROM user_game_notifications WHERE game_id = ?`, [
-          game_id,
-        ]);
-      }
-    });
-  });
 }
 
 module.exports = { checkGames };

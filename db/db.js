@@ -1,4 +1,5 @@
 const sqlite3 = require("sqlite3").verbose();
+const { Game } = require('../models/Game')
 
 const db = new sqlite3.Database("./games.db");
 
@@ -16,4 +17,73 @@ db.serialize(() => {
     PRIMARY KEY (user_id, game_id));`);
 });
 
-module.exports = { db };
+function saveNotifiedGame(game) {
+  db.run(
+    `INSERT OR REPLACE INTO notified_games (game_id, title, url, start_date, end_date)
+    VALUES (?, ?, ?, ?, ?)`,
+    [game.id, game.title, game.url, game.offer.startDate, game.offer.endDate]
+  );
+}
+
+function cleanupExpiredGames() {
+  const now = new Date().toISOString();
+  db.all(`SELECT game_id, end_date FROM notified_games`, [], (err, rows) => {
+    if (err) return console.error(err);
+    console.log("Cleaning up games");
+
+    rows.forEach(({ game_id, end_date }) => {
+      if (end_date < now) {
+        console.log("Cleaning up game: " + game_id);
+        db.run(`DELETE FROM notified_games WHERE game_id = ?`, [game_id]);
+        db.run(`DELETE FROM user_game_notifications WHERE game_id = ?`, [
+          game_id,
+        ]);
+      }
+    });
+  });
+}
+
+function saveUserNotification(userId, gameId) {
+  db.run(
+    `INSERT OR IGNORE INTO user_game_notifications (user_id, game_id)
+    VALUES (?, ?)`,
+    [userId, gameId]
+  );
+}
+
+function wasUserNotified(userId, gameId, callback) {
+  db.get(
+    `SELECT 1 FROM user_game_notifications WHERE user_id = ? AND game_id = ?`,
+    [userId, gameId],
+    (err, row) => callback(err, !!row)
+  );
+}
+
+function getAllUsers(callback) {
+  db.all("SELECT chat_id FROM users", [], callback);
+}
+
+function getAllGames(callback) {
+  console.log('Getting games from db')
+  db.all("SELECT * FROM notified_games", [], (err, rows) => {
+    if (err) return callback(err, null);
+
+    const games = rows.map((row) => {
+      return new Game(row.game_id, row.title, row.url, {
+        startDate: row.start_date,
+        endDate: row.end_date,
+      });
+    });
+
+    callback(null, games);
+  });
+}
+
+module.exports = {
+  saveNotifiedGame,
+  cleanupExpiredGames,
+  saveUserNotification,
+  wasUserNotified,
+  getAllUsers,
+  getAllGames,
+};
