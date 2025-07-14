@@ -1,45 +1,51 @@
-const { db } = require("../db/db");
+const {
+  saveUserNotification,
+  wasUserNotified,
+  getAllUsers,
+} = require("../db/db");
 const { bot } = require("../bots/telegramBot");
+const { format } = require("date-fns");
 
 function notifyGames(games, chatId, force = false) {
   if (games.length > 0) {
     games.forEach((game) => {
-      if (force) {
-        forceNotifyUsers(game, chatId);
-      } else {
-        notifyUsersIfNotAlready(game, chatId);
-      }
+      notifyUsers(game, chatId, force);
     });
   } else {
     notifyNotFound(chatId);
   }
 }
 
-async function notifyUsersIfNotAlready(game, specificChatId = null) {
-  const message = `🎮 Nuevo juego gratis disponible: *${game.title}*\n\n[¡Consíguelo aquí!](${game.url})`;
+async function notifyUsers(game, specificChatId = null, force = false) {
+  const formattedStartDate = format(new Date(game.offer.startDate), "dd/MM/yy");
+  const formattedEndDate = format(new Date(game.offer.endDate), "dd/MM/yy");
+  let message = `🎮 Nuevo juego gratis disponible: *${game.title}*\n\n[¡Consíguelo aquí!](${game.url})`;
+  message += game.offer.endDate
+    ? `\n\n🕐 Oferta disponible hasta: *${formattedEndDate}*`
+    : "";
   const options = { parse_mode: "Markdown" };
 
-  const notify = (chatId) => {
-    db.get(
-      `SELECT 1 FROM user_game_notifications WHERE user_id = ? AND game_id = ?`,
-      [chatId, game.id],
-      (err, row) => {
+  const notify = (chatId, force = false) => {
+    if (force) {
+      bot.sendMessage(chatId, message, options);
+    } else {
+      wasUserNotified(chatId, game.id, (err, alreadyNotified) => {
         if (err) return console.error(err);
-        if (!row) {
-          console.log("notifying user: ", chatId);
+        if (!alreadyNotified) {
+          console.log("notifying user:", chatId);
           bot.sendMessage(chatId, message, options);
           saveUserNotification(chatId, game.id);
         }
-      }
-    );
+      });
+    }
   };
 
   if (specificChatId) {
-    notify(specificChatId);
+    notify(specificChatId, force);
   } else {
-    db.all("SELECT chat_id FROM users", [], (err, rows) => {
+    getAllUsers((err, users) => {
       if (err) return console.error(err);
-      rows.forEach(({ chat_id }) => notify(chat_id));
+      users.forEach(({ chat_id }) => notify(chat_id, force));
     });
   }
 }
@@ -52,40 +58,14 @@ async function notifyNotFound(chatId) {
   if (chatId) {
     bot.sendMessage(chatId, message, options);
   } else {
-    db.all("SELECT chat_id FROM users", [], (err, rows) => {
+    getAllUsers((err, users) => {
       if (err) return console.error(err);
 
-      rows.forEach(({ chat_id }) => {
+      users.forEach(({ chat_id }) => {
         bot.sendMessage(chat_id, message, options);
       });
     });
   }
-}
-
-function forceNotifyUsers(game, specificChatId = null) {
-  const message = `🎮 Nuevo juego gratis disponible: *${game.title}*\n\n[¡Consíguelo aquí!](${game.url})`;
-  const options = { parse_mode: "Markdown" };
-
-  const notify = (chatId) => {
-    bot.sendMessage(chatId, message, options);
-  };
-
-  if (specificChatId) {
-    notify(specificChatId);
-  } else {
-    db.all("SELECT chat_id FROM users", [], (err, rows) => {
-      if (err) return console.error(err);
-      rows.forEach(({ chat_id }) => notify(chat_id));
-    });
-  }
-}
-
-function saveUserNotification(userId, gameId) {
-  db.run(
-    `INSERT OR IGNORE INTO user_game_notifications (user_id, game_id)
-    VALUES (?, ?)`,
-    [userId, gameId]
-  );
 }
 
 module.exports = { notifyGames };
