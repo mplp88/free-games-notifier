@@ -1,5 +1,5 @@
 const sqlite3 = require("sqlite3").verbose();
-const { Game } = require('../models/Game')
+const { Game } = require("../models/Game");
 
 const db = new sqlite3.Database("./games.db");
 
@@ -64,7 +64,7 @@ function getAllUsers(callback) {
 }
 
 function getAllGames(callback) {
-  console.log('Getting games from db')
+  console.log("Getting games from db");
   db.all("SELECT * FROM notified_games", [], (err, rows) => {
     if (err) return callback(err, null);
 
@@ -79,6 +79,18 @@ function getAllGames(callback) {
   });
 }
 
+function addUser(chatId, callback) {
+  db.run(
+    "INSERT OR IGNORE INTO users (chat_id) VALUES (?)",
+    [chatId],
+    callback
+  );
+}
+
+function deleteUser(chatId, callback) {
+  db.run("DELETE FROM users WHERE chat_id = ?", [chatId], callback);
+}
+
 module.exports = {
   saveNotifiedGame,
   cleanupExpiredGames,
@@ -86,4 +98,6 @@ module.exports = {
   wasUserNotified,
   getAllUsers,
   getAllGames,
+  addUser,
+  deleteUser,
 };

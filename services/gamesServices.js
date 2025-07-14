@@ -11,26 +11,31 @@ const { Game } = require("../models/Game");
 puppeteer.use(StealthPlugin());
 
 async function checkGames(next, force) {
-  if(!next && force) {
+  if (!next && force) {
     return new Promise((resolve, reject) => {
       getAllGames((err, games) => {
-        if(err) return reject(err);
+        if (err) return reject(err);
         return resolve(games);
-      }) 
-
-    })
+      });
+    });
   }
 
   cleanupExpiredGames();
-  
+
   const requests = [fetchEpicGames(next), fetchSteamGames(next)];
-  
+
   const responses = await Promise.all(requests);
   const games = [...responses[0], ...responses[1]];
   if (!force) {
     games.forEach(saveNotifiedGame);
   }
 
+  games.sort((a, b) => {
+    const dateA = new Date(a.offer.endDate);
+    const dateB = new Date(b.offer.endDate);
+    return dateA - dateB;
+  });
+  
   games.forEach((game) => {
     console.log("Game found: ", game.title);
   });
@@ -56,12 +61,14 @@ async function fetchEpicGames(next) {
         game.id,
         game.title,
         `https://www.epicgames.com/store/en-US/p/${game.catalogNs.mappings[0].pageSlug}`,
-        new GameOffer(
-          game.promotions.promotionalOffers[0]?.promotionalOffers[0]
-            .startDate ?? null,
-          game.promotions.promotionalOffers[0]?.promotionalOffers[0].endDate ??
-            null
-        )
+        {
+          startDate:
+            game.promotions.promotionalOffers[0]?.promotionalOffers[0]
+              .startDate ?? null,
+          endDate:
+            game.promotions.promotionalOffers[0]?.promotionalOffers[0]
+              .endDate ?? null,
+        }
       );
     });
   } catch (error) {
@@ -72,6 +79,7 @@ async function fetchEpicGames(next) {
 
 async function fetchSteamGames(next) {
   try {
+    if(next) return []; //SteamDB no tiene los próximos juegos a venir
     const url = "https://steamdb.info/upcoming/free/";
     const browser = await puppeteer.launch({
       headless: "new",

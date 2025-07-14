@@ -4,42 +4,48 @@ const {
   getAllUsers,
 } = require("../db/db");
 const { bot } = require("../bots/telegramBot");
+const { format } = require("date-fns");
 
 function notifyGames(games, chatId, force = false) {
   if (games.length > 0) {
     games.forEach((game) => {
-      if (force) {
-        forceNotifyUsers(game, chatId);
-      } else {
-        notifyUsersIfNotAlready(game, chatId);
-      }
+      notifyUsers(game, chatId, force);
     });
   } else {
     notifyNotFound(chatId);
   }
 }
 
-async function notifyUsersIfNotAlready(game, specificChatId = null) {
-  const message = `🎮 Nuevo juego gratis disponible: *${game.title}*\n\n[¡Consíguelo aquí!](${game.url})`;
+async function notifyUsers(game, specificChatId = null, force = false) {
+  const formattedStartDate = format(new Date(game.offer.startDate), "dd/MM/yy");
+  const formattedEndDate = format(new Date(game.offer.endDate), "dd/MM/yy");
+  let message = `🎮 Nuevo juego gratis disponible: *${game.title}*\n\n[¡Consíguelo aquí!](${game.url})`;
+  message += game.offer.endDate
+    ? `\n\n🕐 Oferta disponible hasta: *${formattedEndDate}*`
+    : "";
   const options = { parse_mode: "Markdown" };
 
-  const notify = (chatId) => {
-    wasUserNotified(chatId, game.id, (err, alreadyNotified) => {
-      if (err) return console.error(err);
-      if (!alreadyNotified) {
-        console.log("notifying user:", chatId);
-        bot.sendMessage(chatId, message, options);
-        saveUserNotification(chatId, game.id);
-      }
-    });
+  const notify = (chatId, force = false) => {
+    if (force) {
+      bot.sendMessage(chatId, message, options);
+    } else {
+      wasUserNotified(chatId, game.id, (err, alreadyNotified) => {
+        if (err) return console.error(err);
+        if (!alreadyNotified) {
+          console.log("notifying user:", chatId);
+          bot.sendMessage(chatId, message, options);
+          saveUserNotification(chatId, game.id);
+        }
+      });
+    }
   };
 
   if (specificChatId) {
-    notify(specificChatId);
+    notify(specificChatId, force);
   } else {
     getAllUsers((err, users) => {
       if (err) return console.error(err);
-      users.forEach(({ chat_id }) => notify(chat_id));
+      users.forEach(({ chat_id }) => notify(chat_id, force));
     });
   }
 }
@@ -58,24 +64,6 @@ async function notifyNotFound(chatId) {
       users.forEach(({ chat_id }) => {
         bot.sendMessage(chat_id, message, options);
       });
-    });
-  }
-}
-
-function forceNotifyUsers(game, specificChatId = null) {
-  const message = `🎮 Nuevo juego gratis disponible: *${game.title}*\n\n[¡Consíguelo aquí!](${game.url})`;
-  const options = { parse_mode: "Markdown" };
-
-  const notify = (chatId) => {
-    bot.sendMessage(chatId, message, options);
-  };
-
-  if (specificChatId) {
-    notify(specificChatId);
-  } else {
-    getAllUsers((err, users) => {
-      if (err) return console.error(err);
-      users.forEach(({ chat_id }) => notify(chat_id));
     });
   }
 }
