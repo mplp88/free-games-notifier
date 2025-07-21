@@ -5,8 +5,11 @@ const {
   saveNotifiedGame,
   cleanupExpiredGames,
   getAllGames,
+  getEpicGames,
+  getSteamGames,
 } = require("../db/db");
 const { Game } = require("../models/Game");
+const logger = require('../utlis/logger')
 
 puppeteer.use(StealthPlugin());
 
@@ -35,12 +38,30 @@ async function checkGames(next, force) {
     const dateB = new Date(b.offer.endDate);
     return dateA - dateB;
   });
-  
+
   games.forEach((game) => {
-    console.log("Game found: ", game.title);
+    logger.info(`Game found: ${game.title}`);
   });
 
   return games;
+}
+
+async function checkEpicGames() {
+  return new Promise((resolve, reject) => {
+    getEpicGames((err, games) => {
+      if (err) return reject(err);
+      return resolve(games);
+    });
+  });
+}
+
+async function checkSteamGames() {
+  return new Promise((resolve, reject) => {
+    getSteamGames((err, games) => {
+      if (err) return reject(err);
+      return resolve(games);
+    });
+  });
 }
 
 async function fetchEpicGames(next) {
@@ -68,7 +89,8 @@ async function fetchEpicGames(next) {
           endDate:
             game.promotions.promotionalOffers[0]?.promotionalOffers[0]
               .endDate ?? null,
-        }
+        },
+        "epic"
       );
     });
   } catch (error) {
@@ -79,7 +101,7 @@ async function fetchEpicGames(next) {
 
 async function fetchSteamGames(next) {
   try {
-    if(next) return []; //SteamDB no tiene los próximos juegos a venir
+    if (next) return [];
     const url = "https://steamdb.info/upcoming/free/";
     const browser = await puppeteer.launch({
       headless: "new",
@@ -109,16 +131,17 @@ async function fetchSteamGames(next) {
         const endDate = dates[1]?.getAttribute("datetime");
 
         if (
-          appId &&
+          (appId && appId !== '730') &&
           title &&
-          !title.toLowerCase().includes("steamdb.info") &&
-          type.toLowerCase().includes("free")
+          type.toLowerCase().includes("free") &&
+          new Date() < new Date(endDate)
         ) {
           result.push({
             id: appId,
             title,
             url: `https://store.steampowered.com/app/${appId}`,
             offer: { startDate, endDate },
+            source: "steam",
           });
         }
       });
@@ -128,7 +151,7 @@ async function fetchSteamGames(next) {
 
     await browser.close();
     const games = rawGames.map(
-      (game) => new Game(game.id, game.title, game.url, game.offer)
+      (game) => new Game(game.id, game.title, game.url, game.offer, game.source)
     );
     return games;
   } catch (error) {
@@ -157,4 +180,4 @@ function filterNextGames(data) {
   );
 }
 
-module.exports = { checkGames };
+module.exports = { checkGames, checkEpicGames, checkSteamGames };

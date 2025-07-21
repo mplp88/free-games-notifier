@@ -11,7 +11,7 @@ const client = new Client({
 });
 
 client.once('ready', () => {
-  console.log(`🤖 Bot de Discord conectado como ${client.user.tag}`);
+  logger.info(`🤖 Bot de Discord conectado como ${client.user.tag}`);
 });
 
 client.on('messageCreate', async (message) => {

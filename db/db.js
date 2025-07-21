@@ -1,5 +1,6 @@
 const sqlite3 = require("sqlite3").verbose();
 const { Game } = require("../models/Game");
+const logger = require('../utlis/logger')
 
 const db = new sqlite3.Database("./games.db");
 
@@ -17,23 +18,49 @@ db.serialize(() => {
     PRIMARY KEY (user_id, game_id));`);
 });
 
+db.get("PRAGMA table_info(notified_games);", (err, row) => {
+  if (err) return logger.error(err);
+
+  db.all("PRAGMA table_info(notified_games);", (err, columns) => {
+    if (err) return logger.error(err);
+
+    const hasSourceColumn = columns.some((col) => col.name === "source");
+
+    if (!hasSourceColumn) {
+      db.run(
+        "ALTER TABLE notified_games ADD COLUMN source TEXT DEFAULT 'unknown';",
+        (err) => {
+          if (err) logger.error("Error agregando columna source:", err);
+        }
+      );
+    }
+  });
+});
+
 function saveNotifiedGame(game) {
   db.run(
-    `INSERT OR REPLACE INTO notified_games (game_id, title, url, start_date, end_date)
-    VALUES (?, ?, ?, ?, ?)`,
-    [game.id, game.title, game.url, game.offer.startDate, game.offer.endDate]
+    `INSERT OR REPLACE INTO notified_games (game_id, title, url, start_date, end_date, source)
+    VALUES (?, ?, ?, ?, ?, ?)`,
+    [
+      game.id,
+      game.title,
+      game.url,
+      game.offer.startDate,
+      game.offer.endDate,
+      game.source,
+    ]
   );
 }
 
 function cleanupExpiredGames() {
   const now = new Date().toISOString();
   db.all(`SELECT game_id, end_date FROM notified_games`, [], (err, rows) => {
-    if (err) return console.error(err);
-    console.log("Cleaning up games");
+    if (err) return logger.error(err);
+    logger.info("Cleaning up games");
 
     rows.forEach(({ game_id, end_date }) => {
       if (end_date < now) {
-        console.log("Cleaning up game: " + game_id);
+        logger.info(`Cleaning up game: ${game_id}`);
         db.run(`DELETE FROM notified_games WHERE game_id = ?`, [game_id]);
         db.run(`DELETE FROM user_game_notifications WHERE game_id = ?`, [
           game_id,
@@ -64,19 +91,75 @@ function getAllUsers(callback) {
 }
 
 function getAllGames(callback) {
-  console.log("Getting games from db");
+  logger.info("Getting games from db");
   db.all("SELECT * FROM notified_games", [], (err, rows) => {
     if (err) return callback(err, null);
 
     const games = rows.map((row) => {
-      return new Game(row.game_id, row.title, row.url, {
-        startDate: row.start_date,
-        endDate: row.end_date,
-      });
+      return new Game(
+        row.game_id,
+        row.title,
+        row.url,
+        {
+          startDate: row.start_date,
+          endDate: row.end_date,
+        },
+        row.source
+      );
     });
 
     callback(null, games);
   });
+}
+
+function getSteamGames(callback) {
+  db.all(
+    "SELECT * FROM notified_games WHERE source = 'steam'",
+    [],
+    (err, rows) => {
+      if (err) return callback(err, null);
+
+      const games = rows.map((row) => {
+        return new Game(
+          row.game_id,
+          row.title,
+          row.url,
+          {
+            startDate: row.start_date,
+            endDate: row.end_date,
+          },
+          row.source
+        );
+      });
+
+      callback(null, games);
+    }
+  );
+}
+
+function getEpicGames(callback) {
+  db.all(
+    "SELECT * FROM notified_games WHERE source = 'epic'",
+    [],
+    (err, rows) => {
+      if (err) return callback(err, null);
+
+      const games = rows.map((row) => {
+        return new Game(
+          row.game_id,
+          row.title,
+          row.url,
+          {
+            startDate: row.start_date,
+            endDate: row.end_date,
+          },
+          row.source
+        );
+      });
+
+      callback(null, games);
+    }
+  );
 }
 
 function addUser(chatId, callback) {
@@ -98,6 +181,8 @@ module.exports = {
   wasUserNotified,
   getAllUsers,
   getAllGames,
+  getEpicGames,
+  getSteamGames,
   addUser,
   deleteUser,
 };
