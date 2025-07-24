@@ -1,6 +1,6 @@
 const sqlite3 = require("sqlite3").verbose();
 const { Game } = require("../models/Game");
-const logger = require('../utlis/logger')
+const logger = require('../utils/logger')
 
 const db = new sqlite3.Database("./games.db");
 
