@@ -40,7 +40,7 @@ async function checkGames(next, force) {
   });
 
   games.forEach((game) => {
-    logger.info(`Game found: ${game.title}`);
+    logger.info(`Juego encontrado: ${game.title}`);
   });
 
   return games;
@@ -70,12 +70,7 @@ async function fetchEpicGames(next) {
       "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions"
     );
 
-    let games = [];
-    if (!next) {
-      games = filterNewGames(data);
-    } else {
-      games = filterNextGames(data);
-    }
+    const games = next ? filterNextGames(data) : filterNewGames(data);
 
     return games.map((game) => {
       return new Game(

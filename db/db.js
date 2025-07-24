@@ -56,11 +56,11 @@ function cleanupExpiredGames() {
   const now = new Date().toISOString();
   db.all(`SELECT game_id, end_date FROM notified_games`, [], (err, rows) => {
     if (err) return logger.error(err);
-    logger.info("Cleaning up games");
+    logger.info("Limpiando juegos");
 
     rows.forEach(({ game_id, end_date }) => {
       if (end_date < now) {
-        logger.info(`Cleaning up game: ${game_id}`);
+        logger.info(`Limpiando juego con Id: ${game_id}`);
         db.run(`DELETE FROM notified_games WHERE game_id = ?`, [game_id]);
         db.run(`DELETE FROM user_game_notifications WHERE game_id = ?`, [
           game_id,
@@ -91,7 +91,7 @@ function getAllUsers(callback) {
 }
 
 function getAllGames(callback) {
-  logger.info("Getting games from db");
+  logger.info("Obteniendo juegos de la DB");
   db.all("SELECT * FROM notified_games", [], (err, rows) => {
     if (err) return callback(err, null);
 

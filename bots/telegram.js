@@ -56,7 +56,7 @@ bot.onText(/\/current/, async (msg) => {
     const games = await checkGames(false, true);
     notifyGames(games, chatId, true);
   } catch (error) {
-    logger.error("Error during manual verification:", error);
+    logger.error("Error en la verificación manual:", error);
     bot.sendMessage(
       chatId,
       "❌ Ocurrió un error durante la verificación manual."
@@ -76,7 +76,7 @@ bot.onText(/\/next/, async (msg) => {
     const games = await checkGames(true, true);
     notifyGames(games, chatId, true);
   } catch (error) {
-    logger.error("Error during manual verification:", error);
+    logger.error("Error en la verificación manual:", error);
     bot.sendMessage(
       chatId,
       "❌ Ocurrió un error durante la verificación manual."
@@ -96,7 +96,7 @@ bot.onText(/\/epic/, async (msg) => {
     const games = await checkEpicGames();
     notifyGames(games, chatId, true);
   } catch (error) {
-    logger.error("Error during manual verification:", error);
+    logger.error("Error en la verificación manual:", error);
     bot.sendMessage(
       chatId,
       "❌ Ocurrió un error durante la verificación manual."
@@ -116,7 +116,7 @@ bot.onText(/\/steam/, async (msg) => {
     const games = await checkSteamGames();
     notifyGames(games, chatId, true);
   } catch (error) {
-    logger.error("Error during manual verification:", error);
+    logger.error("Error en la verificación manual:", error);
     bot.sendMessage(
       chatId,
       "❌ Ocurrió un error durante la verificación manual."
@@ -133,7 +133,7 @@ bot.onText(/\/help/, async (msg) => {
       "Acá va a estar la ayuda del bot. No implementado todavía."
     );
   } catch (error) {
-    logger.error("Error during manual verification:", error);
+    logger.error("Error en la verificación manual:", error);
     bot.sendMessage(chatId, "❌ Ocurrió un error.");
   }
 });
@@ -152,5 +152,5 @@ bot.onText(/\/info/, async (msg) => {
 });
 
 bot.on('polling_error', (error) => {
-  logger.error(`Polling error: ${error.code || ''} - ${error.message || error.toString()}`);
+  logger.error(`Error de polling: ${error.code || ''} - ${error.message || error.toString()}`);
 });

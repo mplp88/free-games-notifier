@@ -30,7 +30,7 @@ async function notifyUsers(game, specificChatId = null, force = false) {
       wasUserNotified(chatId, game.id, (err, alreadyNotified) => {
         if (err) return console.error(err);
         if (!alreadyNotified) {
-          logger.info(`notifying user: ${chatId}`);
+          logger.info(`Notificando usuario: ${chatId}`);
           bot.sendMessage(chatId, message, options);
           saveUserNotification(chatId, game.id);
         }
