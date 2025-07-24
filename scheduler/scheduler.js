@@ -1,7 +1,7 @@
 const cron = require("node-schedule");
 const { checkGames } = require("../services/gamesServices");
 const { notifyGames } = require("../services/notification");
-const logger = require("../utlis/logger");
+const logger = require("../utils/logger");
 
 let isRunning = false;
 

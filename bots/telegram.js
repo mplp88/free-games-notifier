@@ -6,7 +6,7 @@ const {
 } = require("../services/gamesServices");
 const { notifyGames } = require("../services/notification");
 const { bot } = require("./telegramBot");
-const logger = require('../utlis/logger')
+const logger = require('../utils/logger')
 
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;

@@ -9,7 +9,7 @@ const {
   getSteamGames,
 } = require("../db/db");
 const { Game } = require("../models/Game");
-const logger = require('../utlis/logger')
+const logger = require('../utils/logger')
 
 puppeteer.use(StealthPlugin());
 

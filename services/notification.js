@@ -5,7 +5,7 @@ const {
 } = require("../db/db");
 const { bot } = require("../bots/telegramBot");
 const { format } = require("date-fns");
-const logger = require('../utlis/logger')
+const logger = require('../utils/logger')
 
 function notifyGames(games, chatId, force = false) {
   if (games.length > 0) {
