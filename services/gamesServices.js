@@ -40,7 +40,7 @@ async function checkGames(next, force) {
   });
 
   games.forEach((game) => {
-    logger.info(`Game found: ${game.title}`);
+    logger.info(`Juego encontrado: ${game.title}`);
   });
 
   return games;
