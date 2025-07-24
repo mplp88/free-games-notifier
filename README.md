@@ -22,8 +22,8 @@ Free Games Notifier is a Node.js bot that notifies users about free games availa
 
 #### 1. Clone the repository:
 ```sh
-git clone https://github.com/yourusername/epic-telegram-notifier.git
-cd epic-telegram-notifier
+git clone https://github.com/yourusername/free-games-notifier.git
+cd free-games-notifier
 ```
    
 #### 2. Install dependencies
