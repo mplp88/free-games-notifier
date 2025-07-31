@@ -5,7 +5,7 @@ const logger = require("../utils/logger");
 
 let isRunning = false;
 
-// Ejecutar cada hora en el minuto 0
+// Ejecutar cada hora en el minuto 5
 cron.scheduleJob("5 * * * *", async () => {
   if (isRunning) {
     logger.warn("El Cron está corriendo.");
