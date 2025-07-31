@@ -119,6 +119,7 @@ async function fetchSteamGames(next) {
         const titleEl = row.querySelector(".panel-sale-name b");
         const typeEl = row.querySelector(".cat");
         const dates = row.querySelectorAll(".panel-sale-time relative-time");
+        const FREE_TO_KEEP = "Free to Keep";
 
         const title = titleEl?.innerText.trim();
         const type = typeEl?.innerText.trim();
@@ -128,7 +129,7 @@ async function fetchSteamGames(next) {
         if (
           (appId && appId !== '730') &&
           title &&
-          type.toLowerCase().includes("free") &&
+          type.toLowerCase().includes(FREE_TO_KEEP.toLowerCase()) &&
           new Date() < new Date(endDate)
         ) {
           result.push({
