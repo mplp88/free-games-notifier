@@ -19,7 +19,7 @@ cron.scheduleJob("5 * * * *", async () => {
     const games = await checkGames(false, false);
     notifyGames(games, null, false);
   } catch (err) {
-    logger.error("Error en Cron:", err);
+    logger.error("Error en Cron: " + err.message);
   } finally {
     isRunning = false;
   }

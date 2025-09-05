@@ -2,22 +2,29 @@ const {
   saveUserNotification,
   wasUserNotified,
   getAllUsers,
+  deleteUser,
 } = require("../db/db");
 const { bot } = require("../bots/telegramBot");
 const { format } = require("date-fns");
-const logger = require('../utils/logger')
+const logger = require("../utils/logger");
 
-function notifyGames(games, chatId, force = false) {
+function notifyGames(games, chatId, force = false, next = false) {
   if (games.length > 0) {
     games.forEach((game) => {
-      notifyUsers(game, chatId, force);
+      notifyUsers(game, chatId, force, next);
     });
   }
 }
 
-async function notifyUsers(game, specificChatId = null, force = false) {
+async function notifyUsers(
+  game,
+  specificChatId = null,
+  force = false,
+  next = false
+) {
   const formattedEndDate = format(new Date(game.offer.endDate), "dd/MM/yy");
-  let message = `🎮 Nuevo juego gratis disponible: *${game.title}*\n\n[¡Consíguelo aquí!](${game.url})`;
+  const offerType = next ? "próximamente" : "disponible";
+  let message = `🎮 Nuevo juego gratis ${offerType}: *${game.title}*\n\n[¡Consíguelo aquí!](${game.url})`;
   message += game.offer.endDate
     ? `\n\n🕐 Oferta disponible hasta: *${formattedEndDate}*`
     : "";
@@ -27,12 +34,30 @@ async function notifyUsers(game, specificChatId = null, force = false) {
     if (force) {
       bot.sendMessage(chatId, message, options);
     } else {
-      wasUserNotified(chatId, game.id, (err, alreadyNotified) => {
-        if (err) return console.error(err);
+      wasUserNotified(chatId, game.id, async (err, alreadyNotified) => {
+        if (err) return logger.error(err);
         if (!alreadyNotified) {
-          logger.info(`Notificando usuario: ${chatId}`);
-          bot.sendMessage(chatId, message, options);
-          saveUserNotification(chatId, game.id);
+          try {
+            logger.info(`Notificando usuario: ${chatId}`);
+            await bot.sendMessage(chatId, message, options);
+            saveUserNotification(chatId, game.id);
+          } catch (err) {
+            if (err.response && err.response.statusCode === 403) {
+              logger.warn(
+                `Usuario ${chatId} bloqueó al bot. Eliminándolo de la DB.`
+              );
+              deleteUser(chatId, (dbErr) => {
+                if (dbErr)
+                  logger.error(
+                    `Error al eliminar usuario ${chatId}: ${dbErr.message}`
+                  );
+              });
+            } else {
+              logger.error(
+                `Error enviando mensaje a ${chatId}: ${err.message}`
+              );
+            }
+          }
         }
       });
     }
@@ -42,10 +67,26 @@ async function notifyUsers(game, specificChatId = null, force = false) {
     notify(specificChatId, force);
   } else {
     getAllUsers((err, users) => {
-      if (err) return console.error(err);
+      if (err) return logger.error(err);
       users.forEach(({ chat_id }) => notify(chat_id, force));
     });
   }
 }
 
-module.exports = { notifyGames };
+async function notifyCurrentGamesDiscord(interaction) {
+  await interaction.reply(
+    "🔄 Verificando nuevos juegos gratis, por favor espera..."
+  );
+  const games = await checkGames();
+  if (!games.length) {
+    await interaction.followUp(
+      "😭 No se encontraron juegos gratis actualmente."
+    );
+  } else {
+    for (const game of games) {
+      await interaction.followUp(`🎮 **${game.title}**\n${game.url}`);
+    }
+  }
+}
+
+module.exports = { notifyGames, notifyCurrentGamesDiscord };

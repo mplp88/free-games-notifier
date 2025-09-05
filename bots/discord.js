@@ -1,34 +1,66 @@
 // TODO: WIP - No implementado todavía, falta configurar permisos de bot en discord
-const { Client, GatewayIntentBits } = require('discord.js');
-const { fetchGames } = require('../services/epicGames');
+const { REST, Routes } = require("discord.js");
+//const { checkGames } = require("../services/gamesServices");
+const logger = require("../utils/logger");
+const { client } = require("./discordBot");
+const { notifyCurrentGamesDiscord } = require("../services/notification");
 
-const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
-  ]
-});
+// Registra el slash command al iniciar el bot
+async function registerCommands() {
+  const commands = [
+    {
+      name: "subscribe",
+      description: "Suscribe a las notificaciones de juegos",
+    },
+    {
+      name: "stop",
+      description: "Deja de enviar notificaciones",
+    },
+    {
+      name: "current",
+      description: "Muestra los juegos gratis actuales",
+    },
+    {
+      name: "next",
+      description:
+        "Muestra los juegos gratis que estarán disponibles próximamente",
+    },
+    {
+      name: "epic",
+      description: "Muestra los juegos gratis actuales de Epic Games Store",
+    },
+    {
+      name: "steam",
+      description: "Muestra los juegos gratis actuales de Steam Store",
+    },
+    {
+      name: "help",
+      description: "Muestra la ayuda del bot",
+    },
+    {
+      name: "info",
+      description: "Muestra información sobre el bot",
+    },
+  ];
 
-client.once('ready', () => {
-  logger.info(`🤖 Bot de Discord conectado como ${client.user.tag}`);
-});
+  const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN);
+  try {
+    await rest.put(Routes.applicationCommands(process.env.DISCORD_CLIENT_ID), {
+      body: commands,
+    });
+    logger.info("Slash commands registrados correctamente.");
+  } catch (error) {
+    logger.error("Error registrando slash commands: " + error.message);
+  }
+}
 
-client.on('messageCreate', async (message) => {
-  if (message.content === '/current') {
-    const games = await fetchGames();
-    if (!games.length) {
-      message.channel.send('😭 No se encontraron juegos gratis actualmente.');
-    } else {
-      for (const game of games) {
-        message.channel.send(`🎮 **${game.title}**\n${game.url}`);
-      }
-    }
+client.on("interactionCreate", async (interaction) => {
+  if (!interaction.isChatInputCommand()) return;
+
+  switch (interaction.commandName) {
+    case "current":
+      await notifyCurrentGamesDiscord(interaction);
   }
 });
 
-function startDiscordBot() {
-  client.login(process.env.DISCORD_TOKEN);
-}
-
-module.exports = { startDiscordBot };
+module.exports = { registerCommands };
