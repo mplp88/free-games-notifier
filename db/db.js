@@ -30,7 +30,7 @@ db.get("PRAGMA table_info(notified_games);", (err, row) => {
       db.run(
         "ALTER TABLE notified_games ADD COLUMN source TEXT DEFAULT 'unknown';",
         (err) => {
-          if (err) logger.error("Error agregando columna source:", err);
+          if (err) logger.error("Error agregando columna source: " + err.message);
         }
       );
     }

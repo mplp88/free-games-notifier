@@ -10,9 +10,16 @@ const logger = require('../utils/logger')
 
 bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
+  bot.sendMessage(chatId,
+    "🎮 Bienvenido a Free Games Bot\n\nUsa /subscribe para recibir notificaciones automáticas.\nUsa /stop para dejar de recibirlas."
+  );
+});
+
+bot.onText(/\/subscribe/, (msg) => {
+  const chatId = msg.chat.id;
   addUser(chatId, (err) => {
     if (err) {
-      logger.error("Error al suscribirse:", err);
+      logger.error("Error al suscribirse: " + err.message);
       return bot.sendMessage(chatId, "❌ Hubo un error al suscribirte.");
     }
 
@@ -33,7 +40,7 @@ bot.onText(/\/stop/, (msg) => {
 
   deleteUser(chatId, (err) => {
     if (err) {
-      logger.error("Error al eliminar el chat:", err);
+      logger.error("Error al eliminar el chat: " + err.message);
       return bot.sendMessage(
         chatId,
         "❌ Hubo un error al suscribirte. Contactate con el desarrollador @tehpon"
@@ -56,7 +63,7 @@ bot.onText(/\/current/, async (msg) => {
     const games = await checkGames(false, true);
     notifyGames(games, chatId, true);
   } catch (error) {
-    logger.error("Error en la verificación manual:", error);
+    logger.error("Error en la verificación manual: " + error.message);
     bot.sendMessage(
       chatId,
       "❌ Ocurrió un error durante la verificación manual."
@@ -74,9 +81,9 @@ bot.onText(/\/next/, async (msg) => {
     );
 
     const games = await checkGames(true, true);
-    notifyGames(games, chatId, true);
+    notifyGames(games, chatId, true, true);
   } catch (error) {
-    logger.error("Error en la verificación manual:", error);
+    logger.error("Error en la verificación manual: " + error.message);
     bot.sendMessage(
       chatId,
       "❌ Ocurrió un error durante la verificación manual."
@@ -96,7 +103,7 @@ bot.onText(/\/epic/, async (msg) => {
     const games = await checkEpicGames();
     notifyGames(games, chatId, true);
   } catch (error) {
-    logger.error("Error en la verificación manual:", error);
+    logger.error("Error en la verificación manual: " + error.message);
     bot.sendMessage(
       chatId,
       "❌ Ocurrió un error durante la verificación manual."
@@ -116,7 +123,7 @@ bot.onText(/\/steam/, async (msg) => {
     const games = await checkSteamGames();
     notifyGames(games, chatId, true);
   } catch (error) {
-    logger.error("Error en la verificación manual:", error);
+    logger.error("Error en la verificación manual: " + error.message);
     bot.sendMessage(
       chatId,
       "❌ Ocurrió un error durante la verificación manual."
@@ -133,7 +140,7 @@ bot.onText(/\/help/, async (msg) => {
       "Acá va a estar la ayuda del bot. No implementado todavía."
     );
   } catch (error) {
-    logger.error("Error en la verificación manual:", error);
+    logger.error("Error en la verificación manual: " + error.message);
     bot.sendMessage(chatId, "❌ Ocurrió un error.");
   }
 });
