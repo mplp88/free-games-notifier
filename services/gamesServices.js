@@ -9,6 +9,7 @@ const {
   getSteamGames,
 } = require("../db/db");
 const { Game } = require("../models/Game");
+const UserAgent = require("user-agents");
 const logger = require("../utils/logger");
 
 puppeteer.use(StealthPlugin());
@@ -38,10 +39,8 @@ async function checkGames(next, force) {
     const dateB = new Date(b.offer.endDate);
     return dateA - dateB;
   });
-
-  games.forEach((game) => {
-    logger.info(`Juego encontrado: ${game.title}`);
-  });
+  
+  await closeAllPages();
 
   return games;
 }
@@ -96,17 +95,30 @@ async function fetchEpicGames(next) {
 
 let browserInstance = null;
 let launchTime = Date.now();
+const BROWSER_RESTART_TIME = parseInt(process.env.BROWSER_RESTART_TIME) || 2; // horas
 
 async function getBrowser() {
-  if (!browserInstance || Date.now() - launchTime > 4 * 60 * 60 * 1000) {
-    if (browserInstance) await browserInstance.close();
-    browserInstance = await puppeteer.launch({ headless: "new" });
+  if (
+    !browserInstance ||
+    Date.now() - launchTime > BROWSER_RESTART_TIME * 60 * 60 * 1000
+  ) {
+    if (browserInstance) {
+      logger.info("Reiniciando browser");
+      await browserInstance.close();
+    }
+
+    browserInstance = await puppeteer.launch({
+      headless: 'new',
+    });
     launchTime = Date.now();
 
     process.on("exit", closeBrowser);
     process.on("SIGINT", closeBrowser);
     process.on("SIGTERM", closeBrowser);
+
+    logger.info("Browser lanzado correctamente");
   }
+
   return browserInstance;
 }
 
@@ -115,9 +127,9 @@ async function closeBrowser() {
     try {
       await browserInstance.close();
       browserInstance = null;
-      console.log("✅ Browser cerrado correctamente");
+      logger.info("Browser cerrado correctamente");
     } catch (err) {
-      console.warn("⚠️ Error al cerrar browser:", err.message);
+      logger.warn("Error al cerrar browser:", err.message);
     }
   }
 }
@@ -126,7 +138,7 @@ async function closeAllPages() {
   const browser = await getBrowser();
 
   try {
-    const pages = await browser.pages(); // devuelve todas las pestañas
+    const pages = await browser.pages();
     for (const page of pages) {
       try {
         await page.close();
@@ -134,9 +146,9 @@ async function closeAllPages() {
         console.warn(`⚠️ Error al cerrar page: ${err.message}`);
       }
     }
-    console.log(`✅ Se cerraron ${pages.length} páginas activas.`);
+    logger.info(`Se cerraron ${pages.length} páginas activas.`);
   } catch (err) {
-    console.error("❌ Error al intentar cerrar páginas:", err);
+    logger.error("Error al intentar cerrar páginas:", err);
   }
 }
 
@@ -147,9 +159,9 @@ async function fetchSteamGames(next) {
     const browser = await getBrowser();
     const page = await browser.newPage();
 
-    await page.setUserAgent(
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
-    );
+    const ua = new UserAgent({ deviceCategory: "desktop" });
+    await page.setUserAgent(ua.toString());
+    logger.info(`User Agent: ${ua.toString()}`);
 
     await page.goto(url, { waitUntil: "domcontentloaded" });
     await page.waitForSelector(".app-history-row.app", { timeout: 10000 });
