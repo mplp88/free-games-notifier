@@ -11,6 +11,7 @@ const logger = require("../utils/logger");
 function notifyGames(games, chatId, force = false, next = false) {
   if (games.length > 0) {
     games.forEach((game) => {
+      logger.info(`Juego encontrado: ${game.title}`);
       notifyUsers(game, chatId, force, next);
     });
   }
