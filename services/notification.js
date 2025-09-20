@@ -23,12 +23,14 @@ async function notifyUsers(
   force = false,
   next = false
 ) {
-  const formattedEndDate = format(new Date(game.offer.endDate), "dd/MM/yy");
+  const formattedStartDate = formatDate(game.offer.startDate);
+  const formattedEndDate = formatDate(game.offer.endDate);
   const offerType = next ? "próximamente" : "disponible";
-  let message = `🎮 Nuevo juego gratis ${offerType}: *${game.title}*\n\n[¡Consíguelo aquí!](${game.url})`;
-  message += game.offer.endDate
-    ? `\n\n🕐 Oferta disponible hasta: *${formattedEndDate}*`
-    : "";
+  const actionText = next ? "Miralo" : "Conseguilo";
+  let message = `🎮 Nuevo juego gratis ${offerType} en ${game.source}: *${game.title}*\n\n[¡${actionText} acá!](${game.url})`;
+  message += next
+    ? `\n\n🕐 Oferta disponible a partir del: *${formattedStartDate}*`
+    : `\n\n🕐 Oferta disponible hasta: *${formattedEndDate}*`;
   const options = { parse_mode: "Markdown" };
 
   const notify = (chatId, force = false) => {
@@ -72,6 +74,11 @@ async function notifyUsers(
       users.forEach(({ chat_id }) => notify(chat_id, force));
     });
   }
+}
+
+function formatDate(date) {
+  if (!date) return "N/A";
+  return format(new Date(date), "dd/MM/yy");
 }
 
 async function notifyCurrentGamesDiscord(interaction) {

@@ -79,10 +79,10 @@ async function fetchEpicGames(next) {
         {
           startDate:
             game.promotions.promotionalOffers[0]?.promotionalOffers[0]
-              .startDate ?? null,
+              .startDate ?? game.promotions.upcomingPromotionalOffers[0].promotionalOffers[0].startDate,
           endDate:
             game.promotions.promotionalOffers[0]?.promotionalOffers[0]
-              .endDate ?? null,
+              .endDate ?? game.promotions.upcomingPromotionalOffers[0].promotionalOffers[0].endDate,
         },
         "epic"
       );
