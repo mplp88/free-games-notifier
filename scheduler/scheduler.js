@@ -1,6 +1,6 @@
 const cron = require("node-schedule");
 const { checkGames } = require("../services/gamesServices");
-const { notifyGames } = require("../services/notification");
+const { notifyGames, notifyDiscordGames } = require("../services/notification");
 const logger = require("../utils/logger");
 
 let isRunning = false;
@@ -18,6 +18,7 @@ cron.scheduleJob("5 * * * *", async () => {
     logger.info("Ejecución de Cron");
     const games = await checkGames(false, false);
     notifyGames(games, null, false);
+    notifyDiscordGames(games);
   } catch (err) {
     logger.error("Error en Cron: " + err.message);
   } finally {

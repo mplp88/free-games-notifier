@@ -1,17 +1,21 @@
 const {
   saveUserNotification,
+  saveUserNotificationDiscord,
   wasUserNotified,
+  wasChannelNotified,
   getAllUsers,
+  getDiscordSubscriptions,
   deleteUser,
 } = require("../db/db");
 const { bot } = require("../bots/telegramBot");
+const { client } = require("../bots/discordBot");
 const { format } = require("date-fns");
 const logger = require("../utils/logger");
 
 function notifyGames(games, chatId, force = false, next = false) {
   if (games.length > 0) {
     games.forEach((game) => {
-      logger.info(`Juego encontrado: ${game.title}`);
+      logger.info(`Juego encontrado en ${game.source}: ${game.title}`);
       notifyUsers(game, chatId, force, next);
     });
   }
@@ -81,20 +85,77 @@ function formatDate(date) {
   return format(new Date(date), "dd/MM/yy");
 }
 
-async function notifyCurrentGamesDiscord(interaction) {
-  await interaction.reply(
-    "🔄 Verificando nuevos juegos gratis, por favor espera..."
-  );
-  const games = await checkGames();
-  if (!games.length) {
-    await interaction.followUp(
-      "😭 No se encontraron juegos gratis actualmente."
+async function notifyDiscordGames(games, interaction = null, next = false) {
+  if (interaction) {
+    await replyDiscord(
+      interaction,
+      "🔄 Verificando nuevos juegos gratis, por favor esperá..."
     );
-  } else {
-    for (const game of games) {
-      await interaction.followUp(`🎮 **${game.title}**\n${game.url}`);
+    if (!games.length) {
+      await followUpDiscord(
+        interaction,
+        "😭 No se encontraron juegos gratis actualmente."
+      );
+
+      return;
     }
+
+    for (const game of games) {
+      await followUpDiscord(interaction, `🎮 **${game.title}**\n${game.url}`);
+    }
+  } else {
+    getDiscordSubscriptions((err, rows) => {
+      if (err) return console.error(err);
+
+      rows.forEach(({ guild_id, channel_id }) => {
+        const guild = client.guilds.cache.get(guild_id);
+        const channel = guild?.channels.cache.get(channel_id);
+
+        if (channel && channel.isTextBased()) {
+          games.forEach((game) => {
+            wasChannelNotified(
+              guild_id,
+              channel_id,
+              game.id,
+              (err, alreadyNotified) => {
+                if (err) {
+                  logger.error(err);
+                  return;
+                }
+
+                if (alreadyNotified) return;
+
+                const formattedStartDate = formatDate(game.offer.startDate);
+                const formattedEndDate = formatDate(game.offer.endDate);
+                const offerType = next ? "próximamente" : "disponible";
+                const actionText = next ? "Miralo" : "Conseguilo";
+                let message = `🎮 Nuevo juego gratis ${offerType} en ${game.source}: *${game.title}*\n\n[¡${actionText} acá!](${game.url})`;
+                message += next
+                  ? `\n\n🕐 Oferta disponible a partir del: *${formattedStartDate}*`
+                  : `\n\n🕐 Oferta disponible hasta: *${formattedEndDate}*`;
+                channel.send(message);
+
+                saveUserNotificationDiscord(guild_id, channel_id, game);
+              }
+            );
+          });
+        }
+      });
+    });
   }
 }
 
-module.exports = { notifyGames, notifyCurrentGamesDiscord };
+async function replyDiscord(interaction, reply, ephemeral = true) {
+  await interaction.reply({ content: reply, ephemeral });
+}
+
+async function followUpDiscord(interaction, reply, ephemeral = true) {
+  await interaction.followUp({ content: reply, ephemeral });
+}
+
+module.exports = {
+  notifyGames,
+  notifyDiscordGames,
+  replyDiscord,
+  followUpDiscord,
+};

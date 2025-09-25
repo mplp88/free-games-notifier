@@ -1,6 +1,6 @@
 const sqlite3 = require("sqlite3").verbose();
 const { Game } = require("../models/Game");
-const logger = require('../utils/logger')
+const logger = require("../utils/logger");
 
 const db = new sqlite3.Database("./games.db");
 
@@ -16,6 +16,15 @@ db.serialize(() => {
     user_id TEXT,
     game_id TEXT,
     PRIMARY KEY (user_id, game_id));`);
+  db.run(`CREATE TABLE IF NOT EXISTS discord_subscriptions (
+    guild_id TEXT,
+    channel_id TEXT,
+    PRIMARY KEY (guild_id, channel_id));`);
+  db.run(`CREATE TABLE IF NOT EXISTS discord_channel_game_notifications (
+    guild_id TEXT,
+    channel_id TEXT,
+    game_id TEXT,
+    PRIMARY KEY (guild_id, channel_id, game_id));`);
 });
 
 db.get("PRAGMA table_info(notified_games);", (err, row) => {
@@ -30,7 +39,8 @@ db.get("PRAGMA table_info(notified_games);", (err, row) => {
       db.run(
         "ALTER TABLE notified_games ADD COLUMN source TEXT DEFAULT 'unknown';",
         (err) => {
-          if (err) logger.error("Error agregando columna source: " + err.message);
+          if (err)
+            logger.error("Error agregando columna source: " + err.message);
         }
       );
     }
@@ -65,12 +75,13 @@ function cleanupExpiredGames() {
         db.run(`DELETE FROM user_game_notifications WHERE game_id = ?`, [
           game_id,
         ]);
+        db.run(`DELETE FROM discord_channel_game_notifications WHERE game_id = ?`, [game_id]);
       }
     });
   });
 }
 
-function saveUserNotification(userId, gameId) {
+function saveUserNotification(userId, gameId, guild_id, channel_id) {
   db.run(
     `INSERT OR IGNORE INTO user_game_notifications (user_id, game_id)
     VALUES (?, ?)`,
@@ -78,10 +89,25 @@ function saveUserNotification(userId, gameId) {
   );
 }
 
+function saveUserNotificationDiscord(guild_id, channel_id, game) {
+  db.run(
+    `INSERT INTO discord_channel_game_notifications (guild_id, channel_id, game_id) VALUES (?, ?, ?)`,
+    [guild_id, channel_id, game.id]
+  );
+}
+
 function wasUserNotified(userId, gameId, callback) {
   db.get(
     `SELECT 1 FROM user_game_notifications WHERE user_id = ? AND game_id = ?`,
     [userId, gameId],
+    (err, row) => callback(err, !!row)
+  );
+}
+
+function wasChannelNotified(guild_id, channel_id, gameId, callback) {
+  db.get(
+    `SELECT 1 FROM discord_channel_game_notifications WHERE guild_id = ? AND channel_id = ? AND game_id = ?`,
+    [guild_id, channel_id, gameId],
     (err, row) => callback(err, !!row)
   );
 }
@@ -170,8 +196,32 @@ function addUser(chatId, callback) {
   );
 }
 
+function addDiscordSubscription(guildId, channelId, callback) {
+  db.run(
+    "INSERT OR IGNORE INTO discord_subscriptions (guild_id, channel_id) VALUES (?, ?)",
+    [guildId, channelId],
+    callback
+  );
+}
+
+function getDiscordSubscriptions(callback) {
+  db.all(
+    "SELECT guild_id, channel_id FROM discord_subscriptions",
+    [],
+    callback
+  );
+}
+
 function deleteUser(chatId, callback) {
   db.run("DELETE FROM users WHERE chat_id = ?", [chatId], callback);
+}
+
+function deleteChannelSubscription(guildId, channelId, callback) {
+  db.run(
+    "DELETE FROM discord_subscriptions WHERE guild_id = ? AND channel_id = ?",
+    [guildId, channelId],
+    callback
+  );
 }
 
 module.exports = {
@@ -185,4 +235,9 @@ module.exports = {
   getSteamGames,
   addUser,
   deleteUser,
+  addDiscordSubscription,
+  getDiscordSubscriptions,
+  saveUserNotificationDiscord,
+  wasChannelNotified,
+  deleteChannelSubscription,
 };
