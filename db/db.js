@@ -64,9 +64,11 @@ function saveNotifiedGame(game) {
 
 function cleanupExpiredGames() {
   const now = new Date().toISOString();
+  
   db.all(`SELECT game_id, end_date FROM notified_games`, [], (err, rows) => {
     if (err) return logger.error(err);
-    logger.info("Limpiando juegos");
+    logger.info("Ejecutando limpieza...");
+    let cleaned = 0;
 
     rows.forEach(({ game_id, end_date }) => {
       if (end_date < now) {
@@ -76,8 +78,12 @@ function cleanupExpiredGames() {
           game_id,
         ]);
         db.run(`DELETE FROM discord_channel_game_notifications WHERE game_id = ?`, [game_id]);
+        cleaned++;
       }
     });
+
+    const message = cleaned == 0 ? 'Nada que limpiar' : `Se limpiaron ${cleaned} juego/s`;
+    logger.info(message)
   });
 }
 

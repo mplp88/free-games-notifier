@@ -12,7 +12,7 @@ bot.onText(/\/start/, (msg) => {
   const chatId = msg.chat.id;
   bot.sendMessage(
     chatId,
-    "🎮 Bienvenido a Free Games Bot\n\nUsá /subscribe para recibir notificaciones automáticas.\nUsá /stop para dejar de recibirlas.\nUsá /help para obtener ayuda."
+    "🎮 Bienvenido a Free Games Notifier Bot\n\nUsá /subscribe para recibir notificaciones automáticas.\nUsá /stop para dejar de recibirlas.\nUsá /help para obtener ayuda."
   );
 });
 
