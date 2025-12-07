@@ -11,10 +11,13 @@ const logger = createLogger({
   ),
   transports: [
     new transports.Console(),
-    new transports.File({ filename: path.join('logs', 'error.log'), level: 'error' }),
-    new transports.File({ filename: path.join('logs', 'combined.log') })
+    new transports.File({
+      filename: path.join('logs', 'error.log'),
+      level: 'error',
+    }),
+    new transports.File({ filename: path.join('logs', 'combined.log') }),
   ],
-  exitOnError: false
+  exitOnError: false,
 });
 
 module.exports = logger;
