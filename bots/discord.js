@@ -114,6 +114,9 @@ function subscribe(interaction) {
   }
 
   addDiscordSubscription(guildId, channelId, (err) => {
+    logger.info(
+      `Agregando suscripción de Discord: Servidor ${guildId}, canal: ${channelId}`
+    );
     if (err) {
       logger.error('Error al agregar suscripción de Discord: ' + err.message);
       return interaction.reply({
@@ -121,6 +124,8 @@ function subscribe(interaction) {
         ephemeral: true,
       });
     }
+
+    logger.info('Enviando mensaje de suscripción exitosa en Discord');
     replyDiscord(interaction, {
       content:
         '✅ ¡Ya estás suscrito para recibir notificaciones de juegos gratis!',
@@ -128,11 +133,12 @@ function subscribe(interaction) {
     });
 
     setTimeout(async () => {
+      logger.info('Enviando notificación inicial de juegos gratis en Discord');
       followUpDiscord(
         interaction,
         '🔄 Verificando nuevos juegos gratis, por favor esperá...'
       );
-      const games = await checkGames(false, false);
+      const games = await checkGames(false, true);
       notifyDiscordGames(games);
     }, 500);
   });

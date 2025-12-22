@@ -140,3 +140,5 @@ vite.config.ts.timestamp-*
 
 *.db
 index_old.js
+
+scripts/

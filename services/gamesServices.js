@@ -72,9 +72,20 @@ async function fetchEpicGames(next) {
     const games = next ? filterNextGames(data) : filterNewGames(data);
 
     return games.map((game) => {
-      const gameUrl = game.catalogNs.mappings[0]?.pageSlug
-        ? `https://www.epicgames.com/store/en-US/p/${game.catalogNs.mappings[0]?.pageSlug}`
-        : '';
+      const urlDefault = 'https://store.epicgames.com/en-US/free-games';
+      let slug = '';
+
+      if (game.catalogNs && game.catalogNs.mappings.length !== 0) {
+        slug = game.catalogNs.mappings[0].pageSlug;
+      }
+
+      if (slug === '') {
+        slug = game.productSlug;
+      }
+
+      const gameUrl = slug
+        ? `https://www.epicgames.com/store/en-US/p/${slug}`
+        : urlDefault;
 
       return new Game(
         game.id,
