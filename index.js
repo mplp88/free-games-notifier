@@ -27,8 +27,6 @@ async function startBots() {
     notifyGames(games, null, false);
     notifyDiscordGames(games);
   });
-  // notifyGames(games);
-  // notifyDiscordGames(games);
 }
 
 startBots().catch((err) => {
