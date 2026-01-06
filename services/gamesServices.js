@@ -72,6 +72,9 @@ async function fetchEpicGames(next) {
     const games = next ? filterNextGames(data) : filterNewGames(data);
 
     return games.map((game) => {
+      const freeGamesPath = game.categories.some((c) => c.path === 'bundles')
+        ? 'bundles'
+        : 'p';
       const urlDefault = 'https://store.epicgames.com/en-US/free-games';
       let slug = '';
 
@@ -84,7 +87,7 @@ async function fetchEpicGames(next) {
       }
 
       const gameUrl = slug
-        ? `https://www.epicgames.com/store/en-US/p/${slug}`
+        ? `https://www.epicgames.com/store/en-US/${freeGamesPath}/${slug}`
         : urlDefault;
 
       return new Game(
