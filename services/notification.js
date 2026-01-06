@@ -43,7 +43,7 @@ async function notifyUsers(
     source.at(0).toUpperCase()
   );
   let message = `🎮 Nuevo juego gratis ${offerType} en ${capitalizedSource}: *${title}*`;
-  message += url ?? `\n\n[¡${actionText} acá!](${url})`;
+  message += url ? `\n\n[¡${actionText} acá!](${url})` : '';
   message += next
     ? `\n\n🕐 Oferta disponible a partir del: *${formattedStartDate}*`
     : `\n\n🕐 Oferta disponible hasta: *${formattedEndDate}*`;
