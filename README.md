@@ -21,40 +21,47 @@ Free Games Notifier is a Node.js bot that notifies users about free games availa
 ### Installation
 
 #### 1. Clone the repository:
+
 ```sh
 git clone https://github.com/yourusername/free-games-notifier.git
 cd free-games-notifier
 ```
-   
+
 #### 2. Install dependencies
+
 ```sh
 npm install
 ```
 
 #### 3. Create a .env file:
+
 ```sh
 TELEGRAM_TOKEN=your_telegram_token_here
 ```
 
 ## Usage
+
 Start the bot:
+
 ```sh
 npm start
 ```
 
 Or use the provided script: run.sh
 
-## Telegram Commands
+## Commands
+
 - /start – Subscribe to notifications
 - /stop – Unsubscribe from notifications
 - /current – Show current free games
 - /next – Show upcoming free games
 - /epic – Show Epic Games free games
 - /steam – Show Steam free games
-- /help – Show help (not implemented)
-- /info – Show bot info (not implemented)
+- /help – Show help
+- /info – Show bot info
 
 ## Project Structure
+
 ```
 .
 ├── bots/              # Telegram and Discord bot logic
@@ -70,4 +77,5 @@ Or use the provided script: run.sh
 ```
 
 ## License
+
 MIT © 2025 Martín Ponce

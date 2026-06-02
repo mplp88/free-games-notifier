@@ -41,7 +41,7 @@ db.get("PRAGMA table_info(notified_games);", (err, row) => {
         (err) => {
           if (err)
             logger.error("Error agregando columna source: " + err.message);
-        }
+        },
       );
     }
   });
@@ -58,13 +58,13 @@ function saveNotifiedGame(game) {
       game.offer.startDate,
       game.offer.endDate,
       game.source,
-    ]
+    ],
   );
 }
 
 function cleanupExpiredGames() {
   const now = new Date().toISOString();
-  
+
   db.all(`SELECT game_id, end_date FROM notified_games`, [], (err, rows) => {
     if (err) return logger.error(err);
     logger.info("Ejecutando limpieza...");
@@ -77,13 +77,17 @@ function cleanupExpiredGames() {
         db.run(`DELETE FROM user_game_notifications WHERE game_id = ?`, [
           game_id,
         ]);
-        db.run(`DELETE FROM discord_channel_game_notifications WHERE game_id = ?`, [game_id]);
+        db.run(
+          `DELETE FROM discord_channel_game_notifications WHERE game_id = ?`,
+          [game_id],
+        );
         cleaned++;
       }
     });
 
-    const message = cleaned == 0 ? 'Nada que limpiar' : `Se limpiaron ${cleaned} juego/s`;
-    logger.info(message)
+    const message =
+      cleaned == 0 ? "Nada que limpiar" : `Se limpiaron ${cleaned} juego/s`;
+    logger.info(message);
   });
 }
 
@@ -91,14 +95,14 @@ function saveUserNotification(userId, gameId, guild_id, channel_id) {
   db.run(
     `INSERT OR IGNORE INTO user_game_notifications (user_id, game_id)
     VALUES (?, ?)`,
-    [userId, gameId]
+    [userId, gameId],
   );
 }
 
-function saveUserNotificationDiscord(guild_id, channel_id, game) {
+function saveChannelNotification(guild_id, channel_id, game) {
   db.run(
     `INSERT INTO discord_channel_game_notifications (guild_id, channel_id, game_id) VALUES (?, ?, ?)`,
-    [guild_id, channel_id, game.id]
+    [guild_id, channel_id, game.id],
   );
 }
 
@@ -106,7 +110,7 @@ function wasUserNotified(userId, gameId, callback) {
   db.get(
     `SELECT 1 FROM user_game_notifications WHERE user_id = ? AND game_id = ?`,
     [userId, gameId],
-    (err, row) => callback(err, !!row)
+    (err, row) => callback(err, !!row),
   );
 }
 
@@ -114,7 +118,7 @@ function wasChannelNotified(guild_id, channel_id, gameId, callback) {
   db.get(
     `SELECT 1 FROM discord_channel_game_notifications WHERE guild_id = ? AND channel_id = ? AND game_id = ?`,
     [guild_id, channel_id, gameId],
-    (err, row) => callback(err, !!row)
+    (err, row) => callback(err, !!row),
   );
 }
 
@@ -136,7 +140,7 @@ function getAllGames(callback) {
           startDate: row.start_date,
           endDate: row.end_date,
         },
-        row.source
+        row.source,
       );
     });
 
@@ -160,12 +164,12 @@ function getSteamGames(callback) {
             startDate: row.start_date,
             endDate: row.end_date,
           },
-          row.source
+          row.source,
         );
       });
 
       callback(null, games);
-    }
+    },
   );
 }
 
@@ -185,12 +189,12 @@ function getEpicGames(callback) {
             startDate: row.start_date,
             endDate: row.end_date,
           },
-          row.source
+          row.source,
         );
       });
 
       callback(null, games);
-    }
+    },
   );
 }
 
@@ -198,7 +202,7 @@ function addUser(chatId, callback) {
   db.run(
     "INSERT OR IGNORE INTO users (chat_id) VALUES (?)",
     [chatId],
-    callback
+    callback,
   );
 }
 
@@ -206,7 +210,7 @@ function addDiscordSubscription(guildId, channelId, callback) {
   db.run(
     "INSERT OR IGNORE INTO discord_subscriptions (guild_id, channel_id) VALUES (?, ?)",
     [guildId, channelId],
-    callback
+    callback,
   );
 }
 
@@ -214,7 +218,7 @@ function getDiscordSubscriptions(callback) {
   db.all(
     "SELECT guild_id, channel_id FROM discord_subscriptions",
     [],
-    callback
+    callback,
   );
 }
 
@@ -226,7 +230,7 @@ function deleteChannelSubscription(guildId, channelId, callback) {
   db.run(
     "DELETE FROM discord_subscriptions WHERE guild_id = ? AND channel_id = ?",
     [guildId, channelId],
-    callback
+    callback,
   );
 }
 
@@ -243,7 +247,7 @@ module.exports = {
   deleteUser,
   addDiscordSubscription,
   getDiscordSubscriptions,
-  saveUserNotificationDiscord,
+  saveChannelNotification,
   wasChannelNotified,
   deleteChannelSubscription,
 };
