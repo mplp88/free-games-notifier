@@ -23,15 +23,16 @@ Epic Telegram Notifier is a Node.js bot that notifies users about free games ava
 1. Clone the repository:
    ```sh
    git clone https://github.com/yourusername/epic-telegram-notifier.git
-   cd epic-telegram-notifier```
-   
+   cd epic-telegram-notifier
+   ```
 2. Install dependencies
-`npm install`
+   `npm install`
 
 3. Create a .env file:
-`TELEGRAM_TOKEN=your_telegram_token_here`
+   `TELEGRAM_TOKEN=your_telegram_token_here`
 
 ## Usage
+
 Start the bot:
 `npm start`
 
@@ -39,6 +40,7 @@ Or use the provided script:
 [run.sh](http://_vscodecontentref_/0)
 
 ## Telegram Commands
+
 - /start – Subscribe to notifications
 - /stop – Unsubscribe from notifications
 - /current – Show current free games
@@ -50,6 +52,7 @@ Or use the provided script:
 
 ## Project Structure
 
+```
 .
 ├── bots/              # Telegram and Discord bot logic
 ├── controllers/       # (Reserved for future use)
@@ -62,6 +65,9 @@ Or use the provided script:
 ├── [index.js](http://_vscodecontentref_/1)           # Entry point
 ├── [package.json](http://_vscodecontentref_/2)
 └── [README.md](http://_vscodecontentref_/3)
+```
 
 ## License
+
 MIT © 2025 Martín Ponce
+

@@ -1,16 +1,16 @@
-const axios = require('axios');
-const puppeteer = require('puppeteer-extra');
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+const axios = require("axios");
+const puppeteer = require("puppeteer-extra");
+const StealthPlugin = require("puppeteer-extra-plugin-stealth");
 const {
   saveNotifiedGame,
   cleanupExpiredGames,
   getAllGames,
   getEpicGames,
   getSteamGames,
-} = require('../db/db');
-const { Game } = require('../models/Game');
-const UserAgent = require('user-agents');
-const logger = require('../utils/logger');
+} = require("../db/db");
+const { Game } = require("../models/Game");
+const UserAgent = require("user-agents");
+const logger = require("../utils/logger");
 
 puppeteer.use(StealthPlugin());
 
@@ -66,28 +66,28 @@ async function checkSteamGames() {
 async function fetchEpicGames(next) {
   try {
     const { data } = await axios.get(
-      'https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions'
+      "https://store-site-backend-static.ak.epicgames.com/freeGamesPromotions",
     );
 
     const games = next ? filterNextGames(data) : filterNewGames(data);
 
     return games.map((game) => {
-      const freeGamesPath = game.categories.some((c) => c.path === 'bundles')
-        ? 'bundles'
-        : 'p';
-      const urlDefault = 'https://store.epicgames.com/en-US/free-games';
-      let slug = '';
+      const freeGamesPath = game.categories.some((c) => c.path === "bundles")
+        ? "bundles"
+        : "p";
+      const urlDefault = "https://store.epicgames.com/free-games";
+      let slug = "";
 
       if (game.catalogNs && game.catalogNs.mappings.length !== 0) {
         slug = game.catalogNs.mappings[0].pageSlug;
       }
 
-      if (slug === '') {
-        slug = game.productSlug;
+      if (slug === "") {
+        slug = game.productSlug != "[]" ? game.productSlug : "";
       }
 
       const gameUrl = slug
-        ? `https://www.epicgames.com/store/en-US/${freeGamesPath}/${slug}`
+        ? `https://www.epicgames.com/${freeGamesPath}/${slug}`
         : urlDefault;
 
       return new Game(
@@ -106,11 +106,11 @@ async function fetchEpicGames(next) {
             game.promotions.upcomingPromotionalOffers[0].promotionalOffers[0]
               .endDate,
         },
-        'epic'
+        "epic",
       );
     });
   } catch (error) {
-    logger.error('Error fetching Epic games: ' + error.message);
+    logger.error("Error fetching Epic games: " + error.message);
     return [];
   }
 }
@@ -125,20 +125,20 @@ async function getBrowser() {
     Date.now() - launchTime > BROWSER_RESTART_TIME * 60 * 60 * 1000
   ) {
     if (browserInstance) {
-      logger.info('Reiniciando browser');
+      logger.info("Reiniciando browser");
       await browserInstance.close();
     }
 
     browserInstance = await puppeteer.launch({
-      headless: 'new',
+      headless: "new",
     });
     launchTime = Date.now();
 
-    process.on('exit', closeBrowser);
-    process.on('SIGINT', closeBrowser);
-    process.on('SIGTERM', closeBrowser);
+    process.on("exit", closeBrowser);
+    process.on("SIGINT", closeBrowser);
+    process.on("SIGTERM", closeBrowser);
 
-    logger.info('Browser lanzado correctamente');
+    logger.info("Browser lanzado correctamente");
   }
 
   return browserInstance;
@@ -149,9 +149,9 @@ async function closeBrowser() {
     try {
       await browserInstance.close();
       browserInstance = null;
-      logger.info('Browser cerrado correctamente');
+      logger.info("Browser cerrado correctamente");
     } catch (err) {
-      logger.warn('Error al cerrar browser:', err.message);
+      logger.warn("Error al cerrar browser:", err.message);
     }
   }
 }
@@ -170,43 +170,43 @@ async function closeAllPages() {
     }
     logger.info(`Se cerraron ${pages.length} páginas activas.`);
   } catch (err) {
-    logger.error('Error al intentar cerrar páginas:', err);
+    logger.error("Error al intentar cerrar páginas:", err);
   }
 }
 
 async function fetchSteamGames(next) {
   try {
     if (next) return [];
-    const url = 'https://steamdb.info/upcoming/free/';
+    const url = "https://steamdb.info/upcoming/free/";
     const browser = await getBrowser();
     const page = await browser.newPage();
 
-    const ua = new UserAgent({ deviceCategory: 'desktop' });
+    const ua = new UserAgent({ deviceCategory: "desktop" });
     await page.setUserAgent(ua.toString());
     logger.info(`User Agent: ${ua.toString()}`);
 
-    await page.goto(url, { waitUntil: 'domcontentloaded' });
-    await page.waitForSelector('.app-history-row.app', { timeout: 10000 });
+    await page.goto(url, { waitUntil: "domcontentloaded" });
+    await page.waitForSelector(".app-history-row.app", { timeout: 10000 });
 
     const rawGames = await page.evaluate(() => {
-      const rows = document.querySelectorAll('.app-history-row.app');
+      const rows = document.querySelectorAll(".app-history-row.app");
       const result = [];
 
       rows.forEach((row) => {
-        const appId = row.getAttribute('data-appid');
-        const titleEl = row.querySelector('.panel-sale-name b');
-        const typeEl = row.querySelector('.cat');
-        const dates = row.querySelectorAll('.panel-sale-time relative-time');
-        const FREE_TO_KEEP = 'Free to Keep';
+        const appId = row.getAttribute("data-appid");
+        const titleEl = row.querySelector(".panel-sale-name b");
+        const typeEl = row.querySelector(".cat");
+        const dates = row.querySelectorAll(".panel-sale-time relative-time");
+        const FREE_TO_KEEP = "Free to Keep";
 
         const title = titleEl?.innerText.trim();
         const type = typeEl?.innerText.trim();
-        const startDate = dates[0]?.getAttribute('datetime');
-        const endDate = dates[1]?.getAttribute('datetime');
+        const startDate = dates[0]?.getAttribute("datetime");
+        const endDate = dates[1]?.getAttribute("datetime");
 
         if (
           appId &&
-          appId !== '730' &&
+          appId !== "730" &&
           title &&
           type.toLowerCase().includes(FREE_TO_KEEP.toLowerCase()) &&
           new Date() < new Date(endDate)
@@ -216,7 +216,7 @@ async function fetchSteamGames(next) {
             title,
             url: `https://store.steampowered.com/app/${appId}`,
             offer: { startDate, endDate },
-            source: 'steam',
+            source: "steam",
           });
         }
       });
@@ -226,11 +226,12 @@ async function fetchSteamGames(next) {
 
     await page.close();
     const games = rawGames.map(
-      (game) => new Game(game.id, game.title, game.url, game.offer, game.source)
+      (game) =>
+        new Game(game.id, game.title, game.url, game.offer, game.source),
     );
     return games;
   } catch (error) {
-    logger.error('Error fetching Steam games: ' + error.message);
+    logger.error("Error fetching Steam games: " + error.message);
     return [];
   }
 }
@@ -240,8 +241,9 @@ function filterNewGames(data) {
     (game) =>
       game.promotions &&
       game.promotions.promotionalOffers.length > 0 &&
-      game.promotions.promotionalOffers[0].promotionalOffers[0].discountSetting
-        .discountPercentage == 0
+      game.promotions.promotionalOffers[0].promotionalOffers.some(
+        (offer) => offer.discountSetting.discountPercentage == 0,
+      ),
   );
 }
 
@@ -250,8 +252,9 @@ function filterNextGames(data) {
     (game) =>
       game.promotions &&
       game.promotions.upcomingPromotionalOffers.length > 0 &&
-      game.promotions.upcomingPromotionalOffers[0].promotionalOffers[0]
-        .discountSetting.discountPercentage == 0
+      game.promotions.upcomingPromotionalOffers[0].promotionalOffers.some(
+        (offer) => offer.discountSetting.discountPercentage == 0,
+      ),
   );
 }
 

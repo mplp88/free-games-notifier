@@ -8,4 +8,4 @@ class GameOffer {
   endDate = null;
 }
 
-exports.GameOffer = GameOffer
+exports.GameOffer = GameOffer;
