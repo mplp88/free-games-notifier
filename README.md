@@ -1,6 +1,6 @@
-# Epic Telegram Notifier
+# Free Games Notifier
 
-Epic Telegram Notifier is a Node.js bot that notifies users about free games available on Epic Games and Steam. Users can subscribe via Telegram to receive automatic notifications when new free games are detected.
+Free Games Notifier is a Node.js bot that notifies users about free games available on Epic Games and Steam. Users can subscribe via Telegram to receive automatic notifications when new free games are detected.
 
 ## Features
 
@@ -20,26 +20,36 @@ Epic Telegram Notifier is a Node.js bot that notifies users about free games ava
 
 ### Installation
 
-1. Clone the repository:
-   ```sh
-   git clone https://github.com/yourusername/epic-telegram-notifier.git
-   cd epic-telegram-notifier
-   ```
-2. Install dependencies
-   `npm install`
+#### 1. Clone the repository:
 
-3. Create a .env file:
-   `TELEGRAM_TOKEN=your_telegram_token_here`
+```sh
+git clone https://github.com/yourusername/free-games-notifier.git
+cd free-games-notifier
+```
+
+#### 2. Install dependencies
+
+```sh
+npm install
+```
+
+#### 3. Create a .env file:
+
+```sh
+TELEGRAM_TOKEN=your_telegram_token_here
+```
 
 ## Usage
 
 Start the bot:
-`npm start`
 
-Or use the provided script:
-[run.sh](http://_vscodecontentref_/0)
+```sh
+npm start
+```
 
-## Telegram Commands
+Or use the provided script: run.sh
+
+## Commands
 
 - /start – Subscribe to notifications
 - /stop – Unsubscribe from notifications
@@ -47,27 +57,25 @@ Or use the provided script:
 - /next – Show upcoming free games
 - /epic – Show Epic Games free games
 - /steam – Show Steam free games
-- /help – Show help (not implemented)
-- /info – Show bot info (not implemented)
+- /help – Show help
+- /info – Show bot info
 
 ## Project Structure
 
 ```
 .
 ├── bots/              # Telegram and Discord bot logic
-├── controllers/       # (Reserved for future use)
 ├── db/                # SQLite database logic
 ├── logs/              # Log files
 ├── models/            # Game and GameOffer models
 ├── scheduler/         # Cron job for scheduled checks
 ├── services/          # Game fetching and notification logic
 ├── utils/             # Logger utility
-├── [index.js](http://_vscodecontentref_/1)           # Entry point
-├── [package.json](http://_vscodecontentref_/2)
-└── [README.md](http://_vscodecontentref_/3)
+├── index.js           # Entry point
+├── package.json
+└── README.md
 ```
 
 ## License
 
 MIT © 2025 Martín Ponce
-
