@@ -1,8 +1,8 @@
-const sqlite3 = require("sqlite3").verbose();
-const { Game } = require("../models/Game");
-const logger = require("../utils/logger");
+const sqlite3 = require('sqlite3').verbose();
+const { Game } = require('../models/Game');
+const logger = require('../utils/logger');
 
-const db = new sqlite3.Database("./games.db");
+const db = new sqlite3.Database('./games.db');
 
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS users (chat_id TEXT PRIMARY KEY)`);
@@ -27,24 +27,73 @@ db.serialize(() => {
     PRIMARY KEY (guild_id, channel_id, game_id));`);
 });
 
-db.get("PRAGMA table_info(notified_games);", (err, row) => {
+db.get('PRAGMA table_info(notified_games);', (err, row) => {
   if (err) return logger.error(err);
 
-  db.all("PRAGMA table_info(notified_games);", (err, columns) => {
+  db.all('PRAGMA table_info(notified_games);', (err, columns) => {
     if (err) return logger.error(err);
 
-    const hasSourceColumn = columns.some((col) => col.name === "source");
+    const hasSourceColumn = columns.some((col) => col.name === 'source');
 
     if (!hasSourceColumn) {
       db.run(
         "ALTER TABLE notified_games ADD COLUMN source TEXT DEFAULT 'unknown';",
         (err) => {
           if (err)
-            logger.error("Error agregando columna source: " + err.message);
+            logger.error('Error agregando columna source: ' + err.message);
         },
       );
     }
   });
+});
+
+db.get('PRAGMA table_info(user_game_notifications);', (err, row) => {
+  if (err) return logger.error(err);
+
+  db.all('PRAGMA table_info(user_game_notifications);', (err, columns) => {
+    if (err) return logger.error(err);
+
+    const hasNotifiedAtColumn = columns.some(
+      (col) => col.name === 'notified_at',
+    );
+
+    if (!hasNotifiedAtColumn) {
+      db.run(
+        'ALTER TABLE user_game_notifications ADD COLUMN notified_at TEXT;',
+        (err) => {
+          if (err)
+            logger.error('Error agregando columna notified_at: ' + err.message);
+        },
+      );
+    }
+  });
+});
+
+db.get('PRAGMA table_info(discord_channel_game_notifications);', (err, row) => {
+  if (err) return logger.error(err);
+
+  db.all(
+    'PRAGMA table_info(discord_channel_game_notifications);',
+    (err, columns) => {
+      if (err) return logger.error(err);
+
+      const hasNotifiedAtColumn = columns.some(
+        (col) => col.name === 'notified_at',
+      );
+
+      if (!hasNotifiedAtColumn) {
+        db.run(
+          'ALTER TABLE discord_channel_game_notifications ADD COLUMN notified_at TEXT;',
+          (err) => {
+            if (err)
+              logger.error(
+                'Error agregando columna notified_at: ' + err.message,
+              );
+          },
+        );
+      }
+    },
+  );
 });
 
 function saveNotifiedGame(game) {
@@ -65,44 +114,48 @@ function saveNotifiedGame(game) {
 function cleanupExpiredGames() {
   const now = new Date().toISOString();
 
-  db.all(`SELECT game_id, end_date FROM notified_games`, [], (err, rows) => {
-    if (err) return logger.error(err);
-    logger.info("Ejecutando limpieza...");
-    let cleaned = 0;
+  db.all(
+    `SELECT game_id, start_date, end_date FROM notified_games`,
+    [],
+    (err, rows) => {
+      if (err) return logger.error(err);
+      logger.info('Ejecutando limpieza...');
+      let cleaned = 0;
 
-    rows.forEach(({ game_id, end_date }) => {
-      if (end_date < now) {
-        logger.info(`Limpiando juego con Id: ${game_id}`);
-        db.run(`DELETE FROM notified_games WHERE game_id = ?`, [game_id]);
-        db.run(`DELETE FROM user_game_notifications WHERE game_id = ?`, [
-          game_id,
-        ]);
-        db.run(
-          `DELETE FROM discord_channel_game_notifications WHERE game_id = ?`,
-          [game_id],
-        );
-        cleaned++;
-      }
-    });
+      rows.forEach(({ game_id, start_date, end_date }) => {
+        if (start_date > now || end_date < now) {
+          logger.info(`Limpiando juego con Id: ${game_id}`);
+          db.run(`DELETE FROM notified_games WHERE game_id = ?`, [game_id]);
+          db.run(`DELETE FROM user_game_notifications WHERE game_id = ?`, [
+            game_id,
+          ]);
+          db.run(
+            `DELETE FROM discord_channel_game_notifications WHERE game_id = ?`,
+            [game_id],
+          );
+          cleaned++;
+        }
+      });
 
-    const message =
-      cleaned == 0 ? "Nada que limpiar" : `Se limpiaron ${cleaned} juego/s`;
-    logger.info(message);
-  });
+      const message =
+        cleaned == 0 ? 'Nada que limpiar' : `Se limpiaron ${cleaned} juego/s`;
+      logger.info(message);
+    },
+  );
 }
 
-function saveUserNotification(userId, gameId, guild_id, channel_id) {
+function saveUserNotification(userId, gameId) {
   db.run(
-    `INSERT OR IGNORE INTO user_game_notifications (user_id, game_id)
-    VALUES (?, ?)`,
-    [userId, gameId],
+    `INSERT OR IGNORE INTO user_game_notifications (user_id, game_id, notified_at)
+    VALUES (?, ?, ?)`,
+    [userId, gameId, new Date().toISOString()],
   );
 }
 
 function saveChannelNotification(guild_id, channel_id, game) {
   db.run(
-    `INSERT INTO discord_channel_game_notifications (guild_id, channel_id, game_id) VALUES (?, ?, ?)`,
-    [guild_id, channel_id, game.id],
+    `INSERT INTO discord_channel_game_notifications (guild_id, channel_id, game_id, notified_at) VALUES (?, ?, ?, ?)`,
+    [guild_id, channel_id, game.id, new Date().toISOString()],
   );
 }
 
@@ -123,12 +176,12 @@ function wasChannelNotified(guild_id, channel_id, gameId, callback) {
 }
 
 function getAllUsers(callback) {
-  db.all("SELECT chat_id FROM users", [], callback);
+  db.all('SELECT chat_id FROM users', [], callback);
 }
 
 function getAllGames(callback) {
-  logger.info("Obteniendo juegos de la DB");
-  db.all("SELECT * FROM notified_games", [], (err, rows) => {
+  logger.info('Obteniendo juegos de la DB');
+  db.all('SELECT * FROM notified_games', [], (err, rows) => {
     if (err) return callback(err, null);
 
     const games = rows.map((row) => {
@@ -200,7 +253,7 @@ function getEpicGames(callback) {
 
 function addUser(chatId, callback) {
   db.run(
-    "INSERT OR IGNORE INTO users (chat_id) VALUES (?)",
+    'INSERT OR IGNORE INTO users (chat_id) VALUES (?)',
     [chatId],
     callback,
   );
@@ -208,7 +261,7 @@ function addUser(chatId, callback) {
 
 function addDiscordSubscription(guildId, channelId, callback) {
   db.run(
-    "INSERT OR IGNORE INTO discord_subscriptions (guild_id, channel_id) VALUES (?, ?)",
+    'INSERT OR IGNORE INTO discord_subscriptions (guild_id, channel_id) VALUES (?, ?)',
     [guildId, channelId],
     callback,
   );
@@ -216,19 +269,19 @@ function addDiscordSubscription(guildId, channelId, callback) {
 
 function getDiscordSubscriptions(callback) {
   db.all(
-    "SELECT guild_id, channel_id FROM discord_subscriptions",
+    'SELECT guild_id, channel_id FROM discord_subscriptions',
     [],
     callback,
   );
 }
 
 function deleteUser(chatId, callback) {
-  db.run("DELETE FROM users WHERE chat_id = ?", [chatId], callback);
+  db.run('DELETE FROM users WHERE chat_id = ?', [chatId], callback);
 }
 
 function deleteChannelSubscription(guildId, channelId, callback) {
   db.run(
-    "DELETE FROM discord_subscriptions WHERE guild_id = ? AND channel_id = ?",
+    'DELETE FROM discord_subscriptions WHERE guild_id = ? AND channel_id = ?',
     [guildId, channelId],
     callback,
   );

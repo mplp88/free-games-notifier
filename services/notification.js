@@ -6,11 +6,11 @@ const {
   getAllUsers,
   getDiscordSubscriptions,
   deleteUser,
-} = require("../db/db");
-const { bot } = require("../bots/telegramBot");
-const { client } = require("../bots/discordBot");
-const { format } = require("date-fns");
-const logger = require("../utils/logger");
+} = require('../db/db');
+const { bot } = require('../bots/telegramBot');
+const { client } = require('../bots/discordBot');
+const { format } = require('date-fns');
+const logger = require('../utils/logger');
 
 function notifyGames(games, chatId, force = false, next = false) {
   if (games.length > 0) {
@@ -33,8 +33,8 @@ async function notifyUsers(
   force = false,
   next = false,
 ) {
-  message = formatMessage(game);
-  const options = { parse_mode: "Markdown" };
+  const message = formatMessage(game);
+  const options = { parse_mode: 'Markdown' };
 
   const notify = (chatId, force = false) => {
     if (force) {
@@ -80,13 +80,13 @@ async function notifyUsers(
 }
 
 function formatDate(date) {
-  if (!date) return "N/A";
-  return format(new Date(date), "dd/MM/yy");
+  if (!date) return 'N/A';
+  return format(new Date(date), 'dd/MM/yy');
 }
 
 async function notifyDiscordGames(games, interaction = null, next = false) {
   if (!games.length && interaction) {
-    await notifyDiscordGames(null, null, interaction, false);
+    await notifyDiscordChannel(null, null, interaction, false);
     return;
   }
 
@@ -105,13 +105,13 @@ async function notifyDiscordChannel(
   if (interaction) {
     await replyDiscord(
       interaction,
-      "🔄 Verificando nuevos juegos gratis, por favor esperá...",
+      '🔄 Verificando nuevos juegos gratis, por favor esperá...',
     );
 
     if (!game) {
       await followUpDiscord(
         interaction,
-        "😭 No se encontraron juegos gratis actualmente.",
+        '😭 No se encontraron juegos gratis actualmente.',
       );
 
       return;
@@ -154,27 +154,27 @@ async function notifyDiscordChannel(
   }
 }
 
-async function replyDiscord(interaction, reply, ephemeral = true) {
+async function replyDiscord(interaction, reply, ephemeral = false) {
   try {
     await interaction.reply({ content: reply, ephemeral });
   } catch (e) {
-    logger.error("Error al enviar mensaje en Discord: " + e.message);
+    logger.error('Error al enviar mensaje en Discord: ' + e.message);
   }
 }
 
-async function followUpDiscord(interaction, reply, ephemeral = true) {
+async function followUpDiscord(interaction, reply, ephemeral = false) {
   try {
     await interaction.followUp({ content: reply, ephemeral });
   } catch (e) {
-    logger.error("Error al enviar mensaje en Discord: " + e.message);
+    logger.error('Error al enviar mensaje en Discord: ' + e.message);
   }
 }
 
 function formatMessage(game, next = false) {
   const formattedStartDate = formatDate(game.offer.startDate);
   const formattedEndDate = formatDate(game.offer.endDate);
-  const offerType = next ? "próximamente" : "disponible";
-  const actionText = next ? "Miralo" : "Conseguilo";
+  const offerType = next ? 'próximamente' : 'disponible';
+  const actionText = next ? 'Miralo' : 'Conseguilo';
   const { source, title, url } = game;
   const capitalizedSource = source.replace(
     source.at(0),
