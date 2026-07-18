@@ -119,24 +119,44 @@ let browserInstance = null;
 let launchTime = Date.now();
 const BROWSER_RESTART_TIME = parseInt(process.env.BROWSER_RESTART_TIME) || 2; // horas
 
+process.on('SIGINT', async () => {
+  logger.info('Cerrando bot por SIGINT...');
+  await closeBrowser();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  logger.info('Cerrando bot por SIGTERM...');
+  await closeBrowser();
+  process.exit(0);
+});
+
 async function getBrowser() {
-  if (
-    !browserInstance ||
-    Date.now() - launchTime > BROWSER_RESTART_TIME * 60 * 60 * 1000
-  ) {
+  const tiempoExcedido =
+    Date.now() - launchTime > BROWSER_RESTART_TIME * 60 * 60 * 1000;
+
+  if (!browserInstance || tiempoExcedido) {
     if (browserInstance) {
-      logger.info('Reiniciando browser');
-      await browserInstance.close();
+      logger.info('Reiniciando browser para liberar RAM...');
+      try {
+        const pages = await browserInstance.pages();
+        await Promise.all(pages.map((page) => page.close()));
+        await browserInstance.close();
+      } catch (err) {
+        logger.error('Error al cerrar instancia previa:', err);
+      }
     }
 
     browserInstance = await puppeteer.launch({
       headless: 'shell',
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+      ],
     });
+
     launchTime = Date.now();
-
-    process.on('SIGINT', closeBrowser);
-    process.on('SIGTERM', closeBrowser);
-
     logger.info('Browser lanzado correctamente');
   }
 
@@ -146,11 +166,13 @@ async function getBrowser() {
 async function closeBrowser() {
   if (browserInstance) {
     try {
+      const pages = await browserInstance.pages();
+      await Promise.all(pages.map((page) => page.close()));
       await browserInstance.close();
       browserInstance = null;
-      logger.info('Browser cerrado correctamente');
+      logger.info('Browser cerrado limpiamente.');
     } catch (err) {
-      logger.warn('Error al cerrar browser:', err.message);
+      logger.error('Error durante el cierre forzado del browser:', err);
     }
   }
 }
