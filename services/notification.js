@@ -11,6 +11,7 @@ const { bot } = require('../bots/telegramBot');
 const { client } = require('../bots/discordBot');
 const { format } = require('date-fns');
 const logger = require('../utils/logger');
+const { EmbedBuilder, MessageFlags } = require('discord.js');
 
 function notifyGames(games, chatId, force = false, next = false) {
   if (games.length > 0) {
@@ -85,39 +86,25 @@ function formatDate(date) {
 }
 
 async function notifyDiscordGames(games, interaction = null, next = false) {
-  if (!games.length && interaction) {
-    await notifyDiscordChannel(null, null, interaction, false);
-    return;
-  }
-
-  for (const game of games) {
-    const message = formatMessage(game, next);
-    await notifyDiscordChannel(game, message, interaction, next);
-  }
-}
-
-async function notifyDiscordChannel(
-  game,
-  message,
-  interaction = null,
-  next = false,
-) {
   if (interaction) {
     await replyDiscord(
       interaction,
       '🔄 Verificando nuevos juegos gratis, por favor esperá...',
     );
 
-    if (!game) {
+    if (!games.length) {
       await followUpDiscord(
         interaction,
         '😭 No se encontraron juegos gratis actualmente.',
       );
-
       return;
     }
 
-    await followUpDiscord(interaction, message);
+    for (const game of games) {
+      const _embed = formatEmbed(game, next);
+      await followUpDiscord(interaction, { embeds: [_embed] });
+    }
+    // En las interacciones, followUp acepta el objeto con la propiedad embeds
   } else {
     getDiscordSubscriptions((err, rows) => {
       if (err) return console.error(err);
@@ -126,28 +113,32 @@ async function notifyDiscordChannel(
         const guild = client.guilds.cache.get(guild_id);
         const channel = guild?.channels.cache.get(channel_id);
 
-        if (channel && channel.isTextBased()) {
-          wasChannelNotified(
-            guild_id,
-            channel_id,
-            game.id,
-            (err, alreadyNotified) => {
-              if (err) {
-                logger.error(err);
-                return;
-              }
+        for (const game of games) {
+          if (channel && channel.isTextBased()) {
+            wasChannelNotified(
+              guild_id,
+              channel_id,
+              game.id,
+              (err, alreadyNotified) => {
+                if (err) {
+                  logger.error(err);
+                  return;
+                }
 
-              if (alreadyNotified) return;
+                if (alreadyNotified) return;
 
-              logger.info(
-                `Notificando en Discord: Servidor ${guild_id}, canal: ${channel_id}`,
-              );
+                logger.info(
+                  `Notificando en Discord: Servidor ${guild_id}, canal: ${channel_id}`,
+                );
 
-              channel.send(message);
+                const _embed = formatEmbed(game, next);
+                // Enviamos el embed al canal
+                channel.send({ embeds: [_embed] });
 
-              saveChannelNotification(guild_id, channel_id, game);
-            },
-          );
+                saveChannelNotification(guild_id, channel_id, game);
+              },
+            );
+          }
         }
       });
     });
@@ -156,7 +147,10 @@ async function notifyDiscordChannel(
 
 async function replyDiscord(interaction, reply, ephemeral = false) {
   try {
-    await interaction.reply({ content: reply, ephemeral });
+    await interaction.reply({
+      content: reply,
+      flags: ephemeral ? MessageFlags.ephemeral : undefined,
+    });
   } catch (e) {
     logger.error('Error al enviar mensaje en Discord: ' + e.message);
   }
@@ -164,7 +158,15 @@ async function replyDiscord(interaction, reply, ephemeral = false) {
 
 async function followUpDiscord(interaction, reply, ephemeral = false) {
   try {
-    await interaction.followUp({ content: reply, ephemeral });
+    const payload =
+      typeof reply === 'string'
+        ? {
+            content: reply,
+            flags: ephemeral ? MessageFlags.ephemeral : undefined,
+          }
+        : { ...reply, flags: ephemeral ? MessageFlags.ephemeral : undefined };
+
+    await interaction.followUp(payload);
   } catch (e) {
     logger.error('Error al enviar mensaje en Discord: ' + e.message);
   }
@@ -185,6 +187,59 @@ function formatMessage(game, next = false) {
     ? `\n\n🕐 Oferta disponible a partir del: *${formattedStartDate}*`
     : `\n\n🕐 Oferta disponible hasta: *${formattedEndDate}*`;
   return message;
+}
+
+function formatEmbed(game, next = false) {
+  const isEpic = game.source?.toLowerCase() === 'epic';
+
+  const sourceConfig = {
+    epic: {
+      name: 'Epic Games Store',
+      color: 0x0078f2,
+      iconUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/a/a7/Epic_Games_logo.png',
+    },
+    steam: {
+      name: 'Steam',
+      color: 0x171a21,
+      iconUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/c/c1/Steam_Logo.png',
+    },
+  };
+
+  const config = sourceConfig[game.source?.toLowerCase()] || {
+    name: game.source,
+    color: 0x5865f2,
+    iconUrl: null,
+  };
+
+  const offerType = next ? 'próximamente' : 'disponible';
+  const targetDate = next ? game.offer.startDate : game.offer.endDate;
+  const dateLabel = next
+    ? 'Disponible a partir del'
+    : 'Oferta disponible hasta';
+
+  // Timestamp de Discord (<t:UNIX:F> muestra fecha/hora y <t:UNIX:R> muestra el "en X días")
+  let dateValue = 'Fecha no disponible';
+  if (targetDate) {
+    const unixTimestamp = Math.floor(new Date(targetDate).getTime() / 1000);
+    dateValue = `<t:${unixTimestamp}:F> (<t:${unixTimestamp}:R>)`;
+  }
+
+  const embed = new EmbedBuilder()
+    .setTitle(game.title)
+    .setURL(game.url)
+    .setColor(config.color)
+    .setAuthor({
+      name: `🎮 Nuevo juego gratis ${offerType} en ${config.name}`,
+      iconURL: config.iconUrl,
+    })
+    .addFields({ name: `🕐 ${dateLabel}`, value: dateValue, inline: false })
+    .setFooter({ text: 'Free Games Notifier' })
+    .setTimestamp()
+    .setImage(game.imageUrl);
+
+  return embed;
 }
 
 module.exports = {
