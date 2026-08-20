@@ -25,7 +25,7 @@ async function registerCommands() {
       description: 'Suscribe a las notificaciones de juegos',
     },
     {
-      name: 'stop',
+      name: 'unsubscribe',
       description: 'Deja de enviar notificaciones',
     },
     {
@@ -71,16 +71,27 @@ async function registerCommands() {
 }
 
 client.on('interactionCreate', async (interaction) => {
-  if (!interaction.isChatInputCommand()) return;
+  try {
+    if (!interaction.isChatInputCommand()) return;
 
-  if (!isBotReady()) {
-    return interaction.reply({
-      content: '❌ El bot no está listo aún. Por favor, intentá más tarde.',
-      ephemeral: true,
+    if (!isBotReady()) {
+      return interaction.reply({
+        content: '❌ El bot no está listo aún. Por favor, intentá más tarde.',
+        ephemeral: true,
+      });
+    }
+
+    await handleInteraction(interaction);
+  } catch (e) {
+    logger.error(
+      `Discord ${interaction.commandName} - Error en la interacción: ${e.message}`,
+    );
+
+    interaction.reply({
+      content:
+        'Ocurrió un error al ejecutar el comando. Por favor reintentá más tarde.',
     });
   }
-
-  await handleInteraction(interaction);
 });
 
 async function handleInteraction(interaction) {
@@ -91,7 +102,7 @@ async function handleInteraction(interaction) {
     case 'subscribe':
       subscribe(interaction);
       break;
-    case 'stop':
+    case 'unsubscribe':
       deleteSubscription(interaction);
       break;
     case 'next':
@@ -183,7 +194,7 @@ async function checkCurrentGames(interaction) {
 }
 
 async function checkNextGames(interaction) {
-  const games = await checkGames(true, false);
+  const games = await checkGames(true, true);
   await notifyDiscordGames(games, interaction, true);
 }
 
@@ -204,7 +215,7 @@ async function sendHelpMessage(interaction) {
     `🟢 *Comandos básicos*\n` +
     `/start - Inicia el bot y muestra el mensaje de bienvenida\n` +
     `/subscribe - Te suscribe a las notificaciones automáticas de juegos\n` +
-    `/stop - Deja de enviarte notificaciones\n` +
+    `/unsubscribe - Deja de enviarte notificaciones\n` +
     `/help - Muestra este mensaje de ayuda\n` +
     `/info - Muestra información sobre el bot\n` +
     `/donate - Opciones para apoyar el proyecto`;

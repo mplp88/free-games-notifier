@@ -90,6 +90,8 @@ async function fetchEpicGames(next) {
         ? `https://www.epicgames.com/${freeGamesPath}/${slug}`
         : urlDefault;
 
+      const imgageUrl = game.keyImages[0].url;
+
       return new Game(
         game.id,
         game.title,
@@ -107,6 +109,7 @@ async function fetchEpicGames(next) {
               .endDate,
         },
         'epic',
+        imgageUrl,
       );
     });
   } catch (error) {
@@ -219,6 +222,7 @@ async function fetchSteamGames(next) {
         const titleEl = row.querySelector('.panel-sale-name b');
         const typeEl = row.querySelector('.cat');
         const dates = row.querySelectorAll('.panel-sale-time relative-time');
+        const imageUrl = row.querySelector('.sale-image').getAttribute('src');
         const FREE_TO_KEEP = 'Free to Keep';
 
         const title = titleEl?.innerText.trim();
@@ -239,6 +243,7 @@ async function fetchSteamGames(next) {
             url: `https://store.steampowered.com/app/${appId}`,
             offer: { startDate, endDate },
             source: 'steam',
+            imageUrl,
           });
         }
       });
@@ -246,15 +251,25 @@ async function fetchSteamGames(next) {
       return result;
     });
 
-    await page.close();
     const games = rawGames.map(
       (game) =>
-        new Game(game.id, game.title, game.url, game.offer, game.source),
+        new Game(
+          game.id,
+          game.title,
+          game.url,
+          game.offer,
+          game.source,
+          game.imageUrl,
+        ),
     );
+
+    await page.close();
+
     return games;
   } catch (error) {
-    page.screenshot({ path: 'logs\\puppeteer-error.png' });
     logger.error('Error fetching Steam games: ' + error.message);
+    if (!page.isClosed())
+      await page.screenshot({ path: 'logs\\puppeteer-error.png' });
     return [];
   }
 }

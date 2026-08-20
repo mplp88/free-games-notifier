@@ -47,6 +47,26 @@ db.get('PRAGMA table_info(notified_games);', (err, row) => {
   });
 });
 
+db.get('PRAGMA table_info(notified_games);', (err, row) => {
+  if (err) return logger.error(err);
+
+  db.all('PRAGMA table_info(notified_games);', (err, columns) => {
+    if (err) return logger.error(err);
+
+    const hasImageUrlColumn = columns.some((col) => col.name === 'imageUrl');
+
+    if (!hasImageUrlColumn) {
+      db.run(
+        "ALTER TABLE notified_games ADD COLUMN imageUrl TEXT DEFAULT '';",
+        (err) => {
+          if (err)
+            logger.error('Error agregando columna source: ' + err.message);
+        },
+      );
+    }
+  });
+});
+
 db.get('PRAGMA table_info(user_game_notifications);', (err, row) => {
   if (err) return logger.error(err);
 
@@ -98,8 +118,8 @@ db.get('PRAGMA table_info(discord_channel_game_notifications);', (err, row) => {
 
 function saveNotifiedGame(game) {
   db.run(
-    `INSERT OR REPLACE INTO notified_games (game_id, title, url, start_date, end_date, source)
-    VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT OR REPLACE INTO notified_games (game_id, title, url, start_date, end_date, source, imageUrl)
+    VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [
       game.id,
       game.title,
@@ -107,6 +127,7 @@ function saveNotifiedGame(game) {
       game.offer.startDate,
       game.offer.endDate,
       game.source,
+      game.imageUrl,
     ],
   );
 }
@@ -194,6 +215,7 @@ function getAllGames(callback) {
           endDate: row.end_date,
         },
         row.source,
+        row.imageUrl,
       );
     });
 
