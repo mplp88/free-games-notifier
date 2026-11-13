@@ -1,33 +1,34 @@
 require('dotenv').config();
 require('./db/db');
-require('./bots/telegram');
+
 const { client, startDiscordBot, setReady } = require('./bots/discordBot');
 const { registerCommands } = require('./bots/discord');
-require('./scheduler/scheduler');
 const logger = require('./utils/logger');
 const { checkGames } = require('./services/gamesServices');
 const { notifyGames, notifyDiscordGames } = require('./services/notification');
-const { getAllGames } = require('./db/db');
+const { getAllGames, initializeDatabase } = require('./db/db');
 const fs = require('fs');
 
 async function startBots() {
+  await initializeDatabase();
+
+  require('./bots/telegram');
+  require('./scheduler/scheduler');
+
   await startDiscordBot();
   registerCommands();
+
   client.once('clientReady', () => {
     setReady(true);
     logger.info(`Bot de Discord conectado como ${client.user.tag}`);
   });
+
   logger.info('Bots iniciados correctamente.');
   await checkGames(false, false);
-  getAllGames((err, games) => {
-    if (err) {
-      logger.error(err);
-      return;
-    }
 
-    notifyGames(games, null, false);
-    notifyDiscordGames(games);
-  });
+  const games = await getAllGames();
+  await notifyGames(games, null, false);
+  await notifyDiscordGames(games);
 }
 
 const pid = process.pid.toString();
