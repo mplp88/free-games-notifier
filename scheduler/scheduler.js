@@ -17,16 +17,13 @@ cron.scheduleJob('5 * * * *', async () => {
 
   try {
     logger.info('Ejecución de Cron');
-    await checkGames(false, false);
-    getAllGames((err, games) => {
-      if (err) {
-        logger.error(err);
-        return;
-      }
 
-      notifyGames(games, null, false);
-      notifyDiscordGames(games);
-    });
+    await checkGames(false, false);
+
+    const games = await getAllGames();
+
+    await notifyGames(games, null, false);
+    await notifyDiscordGames(games);
   } catch (err) {
     logger.error('Error en Cron: ' + err.message);
   } finally {

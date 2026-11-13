@@ -16,27 +16,27 @@ puppeteer.use(StealthPlugin());
 
 async function checkGames(next, force) {
   if (!next && force) {
-    return new Promise((resolve, reject) => {
-      getAllGames((err, games) => {
-        if (err) return reject(err);
-        return resolve(games);
-      });
-    });
+    return getAllGames();
   }
 
-  cleanupExpiredGames();
+  await cleanupExpiredGames();
 
   const requests = [fetchEpicGames(next), fetchSteamGames(next)];
 
   const responses = await Promise.all(requests);
+
   const games = [...responses[0], ...responses[1]];
+
   if (!force) {
-    games.forEach(saveNotifiedGame);
+    for (const game of games) {
+      await saveNotifiedGame(game);
+    }
   }
 
   games.sort((a, b) => {
     const dateA = new Date(a.offer.endDate);
     const dateB = new Date(b.offer.endDate);
+
     return dateA - dateB;
   });
 
@@ -46,21 +46,11 @@ async function checkGames(next, force) {
 }
 
 async function checkEpicGames() {
-  return new Promise((resolve, reject) => {
-    getEpicGames((err, games) => {
-      if (err) return reject(err);
-      return resolve(games);
-    });
-  });
+  return getEpicGames();
 }
 
 async function checkSteamGames() {
-  return new Promise((resolve, reject) => {
-    getSteamGames((err, games) => {
-      if (err) return reject(err);
-      return resolve(games);
-    });
-  });
+  return getSteamGames();
 }
 
 async function fetchEpicGames(next) {

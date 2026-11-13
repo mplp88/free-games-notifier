@@ -100,10 +100,10 @@ async function handleInteraction(interaction) {
       await checkCurrentGames(interaction);
       break;
     case 'subscribe':
-      subscribe(interaction);
+      await subscribe(interaction);
       break;
     case 'unsubscribe':
-      deleteSubscription(interaction);
+      await deleteSubscription(interaction);
       break;
     case 'next':
       await checkNextGames(interaction);
@@ -132,7 +132,7 @@ async function handleInteraction(interaction) {
   }
 }
 
-function subscribe(interaction) {
+async function subscribe(interaction) {
   const guildId = interaction.guild?.id;
   const channelId = interaction.channel?.id;
 
@@ -146,46 +146,47 @@ function subscribe(interaction) {
     return;
   }
 
-  addDiscordSubscription(guildId, channelId, (err) => {
-    logger.info(
-      `Agregando suscripción de Discord: Servidor ${guildId}, canal: ${channelId}`,
-    );
-    if (err) {
-      logger.error('Error al agregar suscripción de Discord: ' + err.message);
-      replyDiscord(interaction, '❌ No pude agregar la suscripción.');
-      return;
-    }
+  try {
+    await addDiscordSubscription(guildId, channelId);
 
-    logger.info('Enviando mensaje de suscripción exitosa en Discord');
-    replyDiscord(
+    await replyDiscord(
       interaction,
       '✅ ¡Ya estás suscrito para recibir notificaciones de juegos gratis!',
     );
 
     setTimeout(async () => {
-      const games = await checkGames(false, true);
-      notifyDiscordGames(games);
-    }, 500);
-  });
-}
-
-function deleteSubscription(interaction) {
-  deleteChannelSubscription(
-    interaction.guild?.id,
-    interaction.channel?.id,
-    (dbErr) => {
-      if (dbErr) {
+      try {
+        const games = await checkGames(false, true);
+        await notifyDiscordGames(games);
+      } catch (error) {
         logger.error(
-          `Error al eliminar suscripción ${interaction.channel?.id}: ${dbErr.message}`,
+          `Error procesando suscripción de Discord: ${error.message}`,
         );
       }
-    },
-  );
+    }, 500);
+  } catch (error) {
+    logger.error(`Error al agregar suscripción de Discord: ${error.message}`);
 
-  replyDiscord(
-    interaction,
-    '✅ Detuviste las notificaciones de juegos gratis.',
-  );
+    await replyDiscord(interaction, '❌ No pude agregar la suscripción.');
+  }
+}
+
+async function deleteSubscription(interaction) {
+  try {
+    await deleteChannelSubscription(
+      interaction.guild?.id,
+      interaction.channel?.id,
+    );
+
+    await replyDiscord(
+      interaction,
+      '✅ Detuviste las notificaciones de juegos gratis.',
+    );
+  } catch (error) {
+    logger.error(`Error al eliminar suscripción: ${error.message}`);
+
+    await replyDiscord(interaction, '❌ No pude eliminar la suscripción.');
+  }
 }
 
 async function checkCurrentGames(interaction) {

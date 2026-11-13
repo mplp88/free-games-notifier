@@ -16,40 +16,52 @@ bot.onText(/\/start/, (msg) => {
   );
 });
 
-bot.onText(/\/subscribe/, (msg) => {
+bot.onText(/\/subscribe/, async (msg) => {
   const chatId = msg.chat.id;
-  addUser(chatId, (err) => {
-    if (err) {
-      logger.error('Error al suscribirse: ' + err.message);
-      return bot.sendMessage(chatId, '❌ Hubo un error al suscribirte.');
-    }
 
-    bot.sendMessage(
+  try {
+    await addUser(chatId);
+
+    await bot.sendMessage(
       chatId,
       '✅ ¡Te has suscrito para recibir notificaciones de juegos gratis!',
     );
 
     setTimeout(async () => {
-      const games = await checkGames(false, true);
-      notifyGames(games, chatId, false);
+      try {
+        const games = await checkGames(false, true);
+        await notifyGames(games, chatId, false);
+      } catch (error) {
+        logger.error(
+          `Error procesando suscripción de Telegram: ${error.message}`,
+        );
+      }
     }, 500);
-  });
+  } catch (error) {
+    logger.error(`Error al suscribirse: ${error.message}`);
+
+    await bot.sendMessage(chatId, '❌ Hubo un error al suscribirte.');
+  }
 });
 
-bot.onText(/\/unsubscribe/, (msg) => {
+bot.onText(/\/unsubscribe/, async (msg) => {
   const chatId = msg.chat.id;
 
-  deleteUser(chatId, (err) => {
-    if (err) {
-      logger.error('Error al eliminar el chat: ' + err.message);
-      return bot.sendMessage(
-        chatId,
-        '❌ Hubo un error al suscribirte. Contactate con el desarrollador @tehpon',
-      );
-    }
+  try {
+    await deleteUser(chatId);
 
-    bot.sendMessage(chatId, 'Ya no recibirás notificaciones de juegos gratis.');
-  });
+    await bot.sendMessage(
+      chatId,
+      'Ya no recibirás notificaciones de juegos gratis.',
+    );
+  } catch (error) {
+    logger.error(`Error al eliminar el chat: ${error.message}`);
+
+    await bot.sendMessage(
+      chatId,
+      '❌ Hubo un error al cancelar tu suscripción.',
+    );
+  }
 });
 
 bot.onText(/\/current/, async (msg) => {
@@ -62,7 +74,7 @@ bot.onText(/\/current/, async (msg) => {
     );
 
     const games = await checkGames(false, true);
-    notifyGames(games, chatId, true);
+    await notifyGames(games, chatId, true);
   } catch (error) {
     logger.error(
       'Telegram /current - Error en la verificación manual: ' + error.message,
@@ -84,7 +96,7 @@ bot.onText(/\/next/, async (msg) => {
     );
 
     const games = await checkGames(true, true);
-    notifyGames(games, chatId, true, true);
+    await notifyGames(games, chatId, true, true);
   } catch (error) {
     logger.error(
       'Telegram /next - Error en la verificación manual: ' + error.message,
@@ -106,7 +118,7 @@ bot.onText(/\/epic/, async (msg) => {
     );
 
     const games = await checkEpicGames();
-    notifyGames(games, chatId, true);
+    await notifyGames(games, chatId, true);
   } catch (error) {
     logger.error(
       'Telegram /epic - Error en la verificación manual: ' + error.message,
@@ -128,7 +140,7 @@ bot.onText(/\/steam/, async (msg) => {
     );
 
     const games = await checkSteamGames();
-    notifyGames(games, chatId, true);
+    await notifyGames(games, chatId, true);
   } catch (error) {
     logger.error(
       'Telegram /steam - Error en la verificación manual: ' + error.message,
