@@ -20,6 +20,58 @@ function capitalize(value = '') {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
+const LAUNCHER_REDIRECT_BASE_URL =
+  'https://free-games-notifier.martinponce.com.ar';
+
+function getLauncherUrl(game) {
+  if (!game?.source || !game?.url) return null;
+
+  try {
+    const storeUrl = new URL(game.url);
+    const source = game.source.toLowerCase();
+
+    if (source === 'steam') {
+      if (storeUrl.hostname !== 'store.steampowered.com') {
+        return null;
+      }
+
+      const match = storeUrl.pathname.match(/\/app\/(\d+)/);
+
+      if (!match) return null;
+
+      return `${LAUNCHER_REDIRECT_BASE_URL}/steam/${match[1]}`;
+    }
+
+    if (source === 'epic') {
+      if (
+        storeUrl.hostname !== 'store.epicgames.com' &&
+        storeUrl.hostname !== 'www.epicgames.com'
+      ) {
+        return null;
+      }
+
+      const segments = storeUrl.pathname.split('/').filter(Boolean);
+
+      const productIndex = segments.indexOf('p');
+      const slug = segments[productIndex + 1];
+
+      if (!slug || !/^[a-zA-Z0-9_-]+$/.test(slug)) {
+        return null;
+      }
+
+      return `${LAUNCHER_REDIRECT_BASE_URL}/epic/${slug}`;
+    }
+
+    return null;
+  } catch (error) {
+    logger.warn(
+      `No se pudo generar el enlace del launcher para ${game.title}: ${error.message}`,
+    );
+
+    return null;
+  }
+}
+
 function notifyGames(games, chatId, force = false, next = false) {
   return processTelegramNotifications(games, chatId, force, next);
 }
@@ -255,8 +307,13 @@ function formatMessage(game, next = false) {
   const { source, title, url } = game;
 
   const capitalizedSource = capitalize(source);
+  const launcherUrl = getLauncherUrl(game);
 
   let message = `🎮 Nuevo juego gratis ${offerType} en ${capitalizedSource}: *${title}*\n\n[¡${actionText} acá!](${url})`;
+
+  if (launcherUrl) {
+    message += `\n\n[🚀 Ver en la app](${launcherUrl})`;
+  }
 
   message += next
     ? `\n\n🕐 Oferta disponible a partir del: *${formattedStartDate}*`
@@ -312,6 +369,8 @@ function formatEmbed(game, next = false) {
     author.iconURL = config.iconUrl;
   }
 
+  const launcherUrl = getLauncherUrl(game);
+
   const embed = new EmbedBuilder()
     .setTitle(game.title)
     .setURL(game.url)
@@ -321,9 +380,17 @@ function formatEmbed(game, next = false) {
       name: `🕐 ${dateLabel}`,
       value: dateValue,
       inline: false,
-    })
-    .setFooter({ text: 'Free Games Notifier' })
-    .setTimestamp();
+    });
+
+  if (launcherUrl) {
+    embed.addFields({
+      name: '🚀 Ver en la app',
+      value: `[Abrir en ${config.name}](${launcherUrl})`,
+      inline: false,
+    });
+  }
+
+  embed.setFooter({ text: 'Free Games Notifier' }).setTimestamp();
 
   if (game.imageUrl) {
     embed.setImage(game.imageUrl);
