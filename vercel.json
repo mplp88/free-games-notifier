@@ -1,0 +1,13 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/steam/:id",
+      "destination": "/api/redirect?store=steam&id=:id"
+    },
+    {
+      "source": "/epic/:slug",
+      "destination": "/api/redirect?store=epic&id=:slug"
+    }
+  ]
+}
