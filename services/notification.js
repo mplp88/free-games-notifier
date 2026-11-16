@@ -309,10 +309,10 @@ function formatMessage(game, next = false) {
   const capitalizedSource = capitalize(source);
   const launcherUrl = getLauncherUrl(game);
 
-  let message = `🎮 Nuevo juego gratis ${offerType} en ${capitalizedSource}: *${title}*\n\n[¡${actionText} acá!](${url})`;
+  let message = `🎮 Nuevo juego gratis ${offerType} en ${capitalizedSource}: *${title}*\n\n[🌐 ¡${actionText} acá!](${url})`;
 
   if (launcherUrl) {
-    message += `\n\n[🚀 Ver en la app](${launcherUrl})`;
+    message += `  ·  [🚀 Ver en la app](${launcherUrl})`;
   }
 
   message += next
@@ -371,26 +371,26 @@ function formatEmbed(game, next = false) {
 
   const launcherUrl = getLauncherUrl(game);
 
+  const actionText = next ? 'Miralo' : 'Conseguilo';
+
+  const links = [`[🌐 ¡${actionText} acá!](${game.url})`];
+
+  if (launcherUrl) {
+    links.push(`[🚀 Ver en la app](${launcherUrl})`);
+  }
+
   const embed = new EmbedBuilder()
     .setTitle(game.title)
-    .setURL(game.url)
     .setColor(config.color)
     .setAuthor(author)
+    .setDescription(`${links.join('  ·  ')}`)
     .addFields({
       name: `🕐 ${dateLabel}`,
       value: dateValue,
       inline: false,
-    });
-
-  if (launcherUrl) {
-    embed.addFields({
-      name: '🚀 Ver en la app',
-      value: `[Abrir en ${config.name}](${launcherUrl})`,
-      inline: false,
-    });
-  }
-
-  embed.setFooter({ text: 'Free Games Notifier' }).setTimestamp();
+    })
+    .setFooter({ text: 'Free Games Notifier' })
+    .setTimestamp();
 
   if (game.imageUrl) {
     embed.setImage(game.imageUrl);
