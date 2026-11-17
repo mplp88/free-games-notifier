@@ -8,3 +8,7 @@
 
 # Permitir la configuración de Vercel
 !vercel.json
+
+# Permitir la carpeta public
+!public
+!public/**
