@@ -7,11 +7,12 @@ function escapeHtml(value) {
     .replace(/'/g, '&#039;');
 }
 
-function createPage({ title, description, deepLink, webUrl }) {
+function createPage({ title, description, deepLink, imageHtml }) {
   const safeTitle = escapeHtml(title);
   const safeDescription = escapeHtml(description);
   const safeDeepLink = escapeHtml(deepLink);
   const safeWebUrl = escapeHtml(webUrl);
+  const safeImageHtml = escapeHtml(imageHtml);
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -120,7 +121,7 @@ function createPage({ title, description, deepLink, webUrl }) {
 
     <p>${safeDescription}</p>
 
-    ${imageHtml}
+    ${safeImageHtml}
 
     <a class="button" href="${safeDeepLink}">
       🚀 Abrir en la aplicación
@@ -172,8 +173,8 @@ module.exports = (req, res) => {
 
   const imageUrl = getValidImageUrl(image);
   const imageHtml = imageUrl
-  ? `<img class="game-image" src="${escapeHtml(imageUrl)}" alt="Portada del juego">`
-  : '';
+    ? `<img class="game-image" src="${escapeHtml(imageUrl)}" alt="Portada del juego">`
+    : '';
 
   let config;
 
@@ -206,7 +207,7 @@ module.exports = (req, res) => {
           'Estamos intentando abrir Epic Games Launcher para mostrarte la página de este juego.',
         deepLink: `com.epicgames.launcher://store/product/${id}`,
         webUrl: `https://store.epicgames.com/p/${id}`,
-        imageHtml
+        imageHtml,
       };
       break;
 
@@ -232,7 +233,7 @@ function getValidImageUrl(image) {
       'cdn1.epicgames.com',
       'cdn2.unrealengine.com',
       'shared.fastly.steamstatic.com',
-      'cdn.akamai.steamstatic.com'
+      'cdn.akamai.steamstatic.com',
     ];
 
     if (!allowedHosts.includes(url.hostname)) return null;
