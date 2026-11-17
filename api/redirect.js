@@ -171,8 +171,13 @@ module.exports = (req, res) => {
   }
 
   const imageUrl = getValidImageUrl(image);
-  const imageHtml = imageUrl
-    ? `<img class="game-image" src="${escapeHtml(imageUrl)}" alt="Portada del juego">`
+
+  const proxyImageUrl = imageUrl
+    ? `/api/image?url=${encodeURIComponent(imageUrl)}`
+    : null;
+
+  const imageHtml = proxyImageUrl
+    ? `<img class="game-image" src="${escapeHtml(proxyImageUrl)}" alt="Portada del juego">`
     : '';
 
   let config;
