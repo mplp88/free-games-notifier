@@ -12,7 +12,6 @@ function createPage({ title, description, deepLink, webUrl, imageHtml }) {
   const safeDescription = escapeHtml(description);
   const safeDeepLink = escapeHtml(deepLink);
   const safeWebUrl = escapeHtml(webUrl);
-  const safeImageHtml = escapeHtml(imageHtml);
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -121,7 +120,7 @@ function createPage({ title, description, deepLink, webUrl, imageHtml }) {
 
     <p>${safeDescription}</p>
 
-    ${safeImageHtml}
+    ${imageHtml}
 
     <a class="button" href="${safeDeepLink}">
       🚀 Abrir en la aplicación
