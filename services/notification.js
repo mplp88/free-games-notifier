@@ -30,44 +30,43 @@ function getLauncherUrl(game) {
     const storeUrl = new URL(game.url);
     const source = game.source.toLowerCase();
 
+    let launcherUrl;
+
     if (source === 'steam') {
-      if (storeUrl.hostname !== 'store.steampowered.com') {
-        return null;
-      }
+      if (storeUrl.hostname !== 'store.steampowered.com') return null;
 
       const match = storeUrl.pathname.match(/\/app\/(\d+)/);
-
       if (!match) return null;
 
-      return `${LAUNCHER_REDIRECT_BASE_URL}/steam/${match[1]}`;
-    }
-
-    if (source === 'epic') {
+      launcherUrl = new URL(`${LAUNCHER_REDIRECT_BASE_URL}/steam/${match[1]}`);
+    } else if (source === 'epic') {
       if (
-        storeUrl.hostname !== 'store.epicgames.com' &&
-        storeUrl.hostname !== 'www.epicgames.com'
-      ) {
+        !['store.epicgames.com', 'www.epicgames.com'].includes(
+          storeUrl.hostname,
+        )
+      )
         return null;
-      }
 
       const segments = storeUrl.pathname.split('/').filter(Boolean);
-
       const productIndex = segments.indexOf('p');
       const slug = segments[productIndex + 1];
 
-      if (!slug || !/^[a-zA-Z0-9_-]+$/.test(slug)) {
-        return null;
-      }
+      if (!slug || !/^[a-zA-Z0-9_-]+$/.test(slug)) return null;
 
-      return `${LAUNCHER_REDIRECT_BASE_URL}/epic/${slug}`;
+      launcherUrl = new URL(`${LAUNCHER_REDIRECT_BASE_URL}/epic/${slug}`);
+    } else {
+      return null;
     }
 
-    return null;
+    if (game.imageUrl) {
+      launcherUrl.searchParams.set('image', game.imageUrl);
+    }
+
+    return launcherUrl.toString();
   } catch (error) {
     logger.warn(
       `No se pudo generar el enlace del launcher para ${game.title}: ${error.message}`,
     );
-
     return null;
   }
 }

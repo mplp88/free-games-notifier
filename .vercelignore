@@ -1,0 +1,10 @@
+
+# Ignorar todo el contenido de la raíz
+/*
+
+# Permitir únicamente la función de redirección
+!api
+!api/**
+
+# Permitir la configuración de Vercel
+!vercel.json
