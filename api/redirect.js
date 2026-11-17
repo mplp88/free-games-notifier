@@ -89,6 +89,28 @@ function createPage({ title, description, deepLink, webUrl }) {
       color: #64748b;
       font-size: 12px;
     }
+
+    .fallback-message {
+      margin-top: 24px;
+      color: #9ca3af;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .fallback-message a {
+      color: #60a5fa;
+      text-decoration: none;
+    }
+
+    .game-image {
+      display: block;
+      width: 100%;
+      max-width: 420px;
+      max-height: 240px;
+      object-fit: contain;
+      border-radius: 12px;
+      margin: 24px auto;
+    }
   </style>
 </head>
 
@@ -98,13 +120,16 @@ function createPage({ title, description, deepLink, webUrl }) {
 
     <p>${safeDescription}</p>
 
+    ${imageHtml}
+
     <a class="button" href="${safeDeepLink}">
       🚀 Abrir en la aplicación
     </a>
 
-    <a class="secondary" href="${safeWebUrl}">
-      Abrir en el navegador
-    </a>
+    <p class="fallback-message">
+      Si la aplicación no se abre, probá
+      <a href="${safeWebUrl}">viendo el juego directamente en la web</a>.
+    </p>
 
     <div class="brand">
       Free Games Notifier
@@ -139,11 +164,16 @@ module.exports = (req, res) => {
     return res.status(405).send('Method not allowed');
   }
 
-  const { store, id } = req.query;
+  const { store, id, image } = req.query;
 
   if (typeof store !== 'string' || typeof id !== 'string') {
     return res.status(400).send('Invalid request');
   }
+
+  const imageUrl = getValidImageUrl(image);
+  const imageHtml = imageUrl
+  ? `<img class="game-image" src="${escapeHtml(imageUrl)}" alt="Portada del juego">`
+  : '';
 
   let config;
 
@@ -160,6 +190,7 @@ module.exports = (req, res) => {
           'Estamos intentando abrir Steam para mostrarte la página de este juego.',
         deepLink: `steam://store/${id}`,
         webUrl: `https://store.steampowered.com/app/${id}/`,
+        imageHtml,
       };
       break;
 
@@ -175,6 +206,7 @@ module.exports = (req, res) => {
           'Estamos intentando abrir Epic Games Launcher para mostrarte la página de este juego.',
         deepLink: `com.epicgames.launcher://store/product/${id}`,
         webUrl: `https://store.epicgames.com/p/${id}`,
+        imageHtml
       };
       break;
 
@@ -187,3 +219,26 @@ module.exports = (req, res) => {
     .setHeader('Content-Type', 'text/html; charset=utf-8')
     .send(createPage(config));
 };
+
+function getValidImageUrl(image) {
+  if (typeof image !== 'string') return null;
+
+  try {
+    const url = new URL(image);
+
+    if (url.protocol !== 'https:') return null;
+
+    const allowedHosts = [
+      'cdn1.epicgames.com',
+      'cdn2.unrealengine.com',
+      'shared.fastly.steamstatic.com',
+      'cdn.akamai.steamstatic.com'
+    ];
+
+    if (!allowedHosts.includes(url.hostname)) return null;
+
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
