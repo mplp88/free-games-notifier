@@ -7,7 +7,7 @@ function escapeHtml(value) {
     .replace(/'/g, '&#039;');
 }
 
-function createPage({ title, description, deepLink, imageHtml }) {
+function createPage({ title, description, deepLink, webUrl, imageHtml }) {
   const safeTitle = escapeHtml(title);
   const safeDescription = escapeHtml(description);
   const safeDeepLink = escapeHtml(deepLink);
