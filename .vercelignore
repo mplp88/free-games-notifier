@@ -14,4 +14,4 @@
 !public/**
 
 # Permitir la política de privacidad
-!privacy.html
+!*.html
