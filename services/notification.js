@@ -128,9 +128,9 @@ async function notifyUsers(
 
       await bot.sendMessage(chat_id, message, options);
     } catch (error) {
-      if (error.response?.statusCode === 403) {
+      if (error.response?.status === 403) {
         logger.warn(
-          `Usuario ${chat_id} bloqueó al bot. Eliminándolo de la DB.`,
+          `Usuario ${chat_id} bloqueó al bot o tiene su cuenta desactivada. Eliminándolo de la DB.`,
         );
 
         try {
