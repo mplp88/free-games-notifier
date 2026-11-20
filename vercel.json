@@ -8,6 +8,10 @@
     {
       "source": "/epic/:slug",
       "destination": "/api/redirect?store=epic&id=:slug"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/privacy.html"
     }
   ]
 }
