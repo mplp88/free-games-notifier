@@ -14,10 +14,12 @@
   "type": "commonjs",
   "dependencies": {
     "axios": "^1.10.0",
+    "cors": "^2.8.6",
     "cron": "^4.3.1",
     "date-fns": "^4.1.0",
     "discord.js": "^14.21.0",
     "dotenv": "^17.4.2",
+    "express": "^5.3.0",
     "node-schedule": "^2.1.1",
     "node-telegram-bot-api": "^1.1.2",
     "puppeteer": "^25.2.1",
