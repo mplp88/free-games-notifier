@@ -8,9 +8,11 @@ const { checkGames } = require('./services/gamesServices');
 const { notifyGames, notifyDiscordGames } = require('./services/notification');
 const { getAllGames, initializeDatabase } = require('./db/db');
 const fs = require('fs');
+const { startApi } = require('./api/server');
 
 async function startBots() {
   await initializeDatabase();
+  startApi();
 
   require('./bots/telegram');
   require('./scheduler/scheduler');
